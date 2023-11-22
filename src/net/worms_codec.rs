@@ -165,13 +165,15 @@ impl Decoder for WormCodec {
                 .map_err(|e| anyhow!("Session access invalid! {:?}", e))?;
 
             if src.get_u8() != 1 {
-                bail!("Invalid Data!");
+                bail!("Invalid Data! Expected 1");
             }
             if src.get_u8() != 0 {
-                bail!("Invalid Data!");
+                bail!("Invalid Data! Expected 0");
             }
             for _ in 0..35 {
-                src.get_u8();
+                if src.get_u8() != 0 {
+                    bail!("Invalid Data Buffer!");
+                }
             }
             packet.session = Some(session_info);
         }

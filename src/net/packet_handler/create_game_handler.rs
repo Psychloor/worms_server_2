@@ -50,7 +50,7 @@ impl PacketHandler for CreateGameHandler {
 
         if let Ok(ip) = ip_result {
             if address.ip().to_string() == "127.0.0.1" || ip == address.ip() {
-                let new_id = Database::get_next_id(db.clone()).await;
+                let new_id = Database::get_next_id(db).await;
 
                 let game = Game::new(
                     new_id,

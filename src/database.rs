@@ -30,11 +30,11 @@ impl Database {
         })
     }
 
-    pub async fn get_next_id(db: Arc<Database>) -> u32 {
+    pub async fn get_next_id(db: &Arc<Database>) -> u32 {
         db.next_id.fetch_add(1, Ordering::Relaxed)
     }
 
-    pub async fn name_exists(db: Arc<Database>, name: &str) -> anyhow::Result<bool> {
-        Ok(db.users.iter().any(|u| u.name.eq_ignore_ascii_case(name)))
+    pub async fn name_exists(db: &Arc<Database>, name: &str) -> bool {
+        db.users.iter().any(|u| u.name.eq_ignore_ascii_case(name))
     }
 }

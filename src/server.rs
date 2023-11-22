@@ -117,10 +117,10 @@ impl Server {
                 },
 
                 rx_result = rx.recv() => {
-                    if let Some(packet) = &rx_result {
+                    if let Some(packet) = rx_result {
                                     let mut sent_packets = 1usize;
 
-                                    if let Err(e) =sink.feed(Arc::clone(&packet)).await {
+                                    if let Err(e) =sink.feed(packet).await {
                                         error!("Error feeding packet! {}", e);
                                         break 'client;
                                     }
@@ -169,7 +169,7 @@ impl Server {
             .map(|s| s.nation.clone())
             .ok_or(anyhow!("No nation specified!"))?;
 
-        if Database::name_exists(Arc::clone(db), name).await? {
+        if Database::name_exists(db, name).await {
             let packet = WormsPacket::new(PacketCode::LoginReply)
                 .value_1(0)
                 .error_code(1)
@@ -177,7 +177,7 @@ impl Server {
             tx.send(packet).await?;
             bail!("Failed to login: Name already exists")
         } else {
-            let new_id = Database::get_next_id(db.clone()).await;
+            let new_id = Database::get_next_id(db).await;
             let new_user = User::new(tx.clone().downgrade(), new_id, name, session_nation);
 
             info!("User '{}' {} joined!", name, new_id);
