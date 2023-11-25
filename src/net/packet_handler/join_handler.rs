@@ -35,28 +35,28 @@ impl PacketHandler for JoinHandler {
                 .ok_or(anyhow!("User not found!"))?
                 .room_id = join_id;
 
-            let packet = WormsPacket::new(PacketCode::Join)
-                .value_2(join_id)
-                .value_10(client_id)
+            let packet = WormsPacket::create(PacketCode::Join)
+                .with_value_2(join_id)
+                .with_value_10(client_id)
                 .build()?;
             Server::broadcast_all_except(Arc::clone(db), packet, &client_id).await?;
 
-            let packet = WormsPacket::new(PacketCode::JoinReply)
-                .error_code(0)
+            let packet = WormsPacket::create(PacketCode::JoinReply)
+                .with_error_code(0)
                 .build()?;
             tx.send(packet).await?;
 
             return Ok(());
         } else if let Some(game) = db.games.get(&join_id) {
             if game.room_id == user_room_id_original {
-                let packet = WormsPacket::new(PacketCode::Join)
-                    .value_2(join_id)
-                    .value_10(client_id)
+                let packet = WormsPacket::create(PacketCode::Join)
+                    .with_value_2(join_id)
+                    .with_value_10(client_id)
                     .build()?;
                 Server::broadcast_all_except(Arc::clone(db), packet, &client_id).await?;
 
-                let packet = WormsPacket::new(PacketCode::JoinReply)
-                    .error_code(0)
+                let packet = WormsPacket::create(PacketCode::JoinReply)
+                    .with_error_code(0)
                     .build()?;
                 tx.send(packet).await?;
 
@@ -65,8 +65,8 @@ impl PacketHandler for JoinHandler {
         }
 
         // if we got to here then there was no room or game to join
-        let packet = WormsPacket::new(PacketCode::JoinReply)
-            .error_code(1)
+        let packet = WormsPacket::create(PacketCode::JoinReply)
+            .with_error_code(1)
             .build()?;
         tx.send(packet).await?;
 

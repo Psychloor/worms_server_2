@@ -39,13 +39,13 @@ impl PacketHandler for LeaveHandler {
                 }
             }
 
-            let packet = WormsPacket::new(PacketCode::LeaveReply)
-                .error_code(0)
+            let packet = WormsPacket::create(PacketCode::LeaveReply)
+                .with_error_code(0)
                 .build()?;
             tx.send(packet).await?;
         } else {
-            let packet = WormsPacket::new(PacketCode::LeaveReply)
-                .error_code(1)
+            let packet = WormsPacket::create(PacketCode::LeaveReply)
+                .with_error_code(1)
                 .build()?;
             tx.send(packet).await?;
         }

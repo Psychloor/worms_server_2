@@ -20,8 +20,8 @@ impl PacketHandler for CloseHandler {
         _address: &SocketAddr,
     ) -> anyhow::Result<()> {
         if packet.value_10.is_some() {
-            let packet = WormsPacket::new(PacketCode::CloseReply)
-                .error_code(0)
+            let packet = WormsPacket::create(PacketCode::CloseReply)
+                .with_error_code(0)
                 .build()?;
             tx.send(packet).await?;
         }

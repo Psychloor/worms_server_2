@@ -65,21 +65,21 @@ impl PacketHandler for CreateGameHandler {
                     db.user_to_game.insert(client_user.name.clone(), new_id);
                 }
 
-                let packet = WormsPacket::new(PacketCode::CreateGame)
-                    .value_1(new_id)
-                    .value_2(game.room_id)
-                    .value_4(0x800)
-                    .data(&address.ip().to_string())
-                    .name(&game.name)
-                    .session(game.session.clone())
+                let packet = WormsPacket::create(PacketCode::CreateGame)
+                    .with_value_1(new_id)
+                    .with_value_2(game.room_id)
+                    .with_value_4(0x800)
+                    .with_data(&address.ip().to_string())
+                    .with_name(&game.name)
+                    .with_session(game.session.clone())
                     .build()?;
 
                 db.games.insert(new_id, game);
                 Server::broadcast_all_except(Arc::clone(db), packet, &client_id).await?;
 
-                let packet = WormsPacket::new(PacketCode::CreateGameReply)
-                    .value_1(new_id)
-                    .error_code(0)
+                let packet = WormsPacket::create(PacketCode::CreateGameReply)
+                    .with_value_1(new_id)
+                    .with_error_code(0)
                     .build()?;
                 tx.send(packet).await?;
 
@@ -87,16 +87,16 @@ impl PacketHandler for CreateGameHandler {
             }
         }
 
-        let packet = WormsPacket::new(PacketCode::CreateGameReply)
-            .value_1(0)
-            .error_code(2)
+        let packet = WormsPacket::create(PacketCode::CreateGameReply)
+            .with_value_1(0)
+            .with_error_code(2)
             .build()?;
         tx.send(packet).await?;
 
-        let packet = WormsPacket::new(PacketCode::ChatRoom)
-            .value_1(client_user.id)
-            .value_3(client_user.room_id)
-            .data(INVALID_MESSAGE)
+        let packet = WormsPacket::create(PacketCode::ChatRoom)
+            .with_value_1(client_user.id)
+            .with_value_3(client_user.room_id)
+            .with_data(INVALID_MESSAGE)
             .build()?;
         tx.send(packet).await?;
 

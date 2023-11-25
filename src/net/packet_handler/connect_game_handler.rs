@@ -26,18 +26,18 @@ impl PacketHandler for ConnectGameHandler {
             let user_room_id = { db.users.get(&client_id).map(|u| u.room_id) };
 
             if Some(game.room_id) == user_room_id {
-                let packet = WormsPacket::new(PacketCode::ConnectGameReply)
-                    .data(&game.ip.to_string())
-                    .error_code(0)
+                let packet = WormsPacket::create(PacketCode::ConnectGameReply)
+                    .with_data(&game.ip.to_string())
+                    .with_error_code(0)
                     .build()?;
                 tx.send(packet).await?;
                 return Ok(());
             }
         }
 
-        let error_packet = WormsPacket::new(PacketCode::ConnectGameReply)
-            .data("")
-            .error_code(1)
+        let error_packet = WormsPacket::create(PacketCode::ConnectGameReply)
+            .with_data("")
+            .with_error_code(1)
             .build()?;
         tx.send(error_packet).await?;
 

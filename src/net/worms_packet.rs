@@ -64,46 +64,46 @@ impl PacketField {
 }
 
 impl WormsPacket {
-    pub fn new(header: PacketCode) -> Self {
+    pub fn create(header: PacketCode) -> Self {
         WormsPacket {
             header_code: header,
             ..Default::default()
         }
     }
 
-    pub fn value_0(mut self, value: u32) -> Self {
+    pub fn with_value_0(mut self, value: u32) -> Self {
         self.value_0 = Some(value);
         self.flags |= PacketField::Value0.into_bit();
         self
     }
 
-    pub fn value_1(mut self, value: u32) -> Self {
+    pub fn with_value_1(mut self, value: u32) -> Self {
         self.value_1 = Some(value);
         self.flags |= PacketField::Value1.into_bit();
         self
     }
 
-    pub fn value_2(mut self, value: u32) -> Self {
+    pub fn with_value_2(mut self, value: u32) -> Self {
         self.value_2 = Some(value);
         self.flags |= PacketField::Value2.into_bit();
         self
     }
-    pub fn value_3(mut self, value: u32) -> Self {
+    pub fn with_value_3(mut self, value: u32) -> Self {
         self.value_3 = Some(value);
         self.flags |= PacketField::Value3.into_bit();
         self
     }
-    pub fn value_4(mut self, value: u32) -> Self {
+    pub fn with_value_4(mut self, value: u32) -> Self {
         self.value_4 = Some(value);
         self.flags |= PacketField::Value4.into_bit();
         self
     }
-    pub fn value_10(mut self, value: u32) -> Self {
+    pub fn with_value_10(mut self, value: u32) -> Self {
         self.value_10 = Some(value);
         self.flags |= PacketField::Value10.into_bit();
         self
     }
-    pub fn data(mut self, value: &str) -> Self {
+    pub fn with_data(mut self, value: &str) -> Self {
         if !value.is_empty() {
             self.data = Some(value.to_string());
             // Length then Data
@@ -113,13 +113,13 @@ impl WormsPacket {
         self
     }
 
-    pub fn error_code(mut self, value: u32) -> Self {
+    pub fn with_error_code(mut self, value: u32) -> Self {
         self.error_code = Some(value);
         self.flags |= PacketField::ErrorCode.into_bit();
         self
     }
 
-    pub fn name(mut self, value: &str) -> Self {
+    pub fn with_name(mut self, value: &str) -> Self {
         if value.len() <= MAX_NAME_LENGTH {
             self.name = Some(value.to_string());
         } else {
@@ -130,7 +130,7 @@ impl WormsPacket {
         self
     }
 
-    pub fn session(mut self, value: SessionInfo) -> Self {
+    pub fn with_session(mut self, value: SessionInfo) -> Self {
         self.session = Some(value);
         self.flags |= PacketField::Session.into_bit();
         self

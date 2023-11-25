@@ -41,9 +41,9 @@ impl PacketHandler for CreateRoomHandler {
             .iter()
             .any(|r| r.name.eq_ignore_ascii_case(room_name))
         {
-            let packet = WormsPacket::new(PacketCode::CreateRoomReply)
-                .value_1(0)
-                .error_code(1)
+            let packet = WormsPacket::create(PacketCode::CreateRoomReply)
+                .with_value_1(0)
+                .with_error_code(1)
                 .build()?;
             tx.send(packet).await?;
         } else {
@@ -51,21 +51,21 @@ impl PacketHandler for CreateRoomHandler {
             let new_room = Room::new(new_id, room_name, packet.session.as_ref().unwrap().nation);
 
             // Notify all users of this newly made room, made early since the room will be consumed
-            let packet = WormsPacket::new(PacketCode::CreateRoom)
-                .value_1(new_id)
-                .value_4(0)
-                .data("")
-                .name(room_name)
-                .session(new_room.session.clone())
+            let packet = WormsPacket::create(PacketCode::CreateRoom)
+                .with_value_1(new_id)
+                .with_value_4(0)
+                .with_data("")
+                .with_name(room_name)
+                .with_session(new_room.session.clone())
                 .build()?;
             db.rooms.insert(new_id, new_room);
 
             Server::broadcast_all_except(Arc::clone(db), packet, &client_id).await?;
 
             // Success packet to sender
-            let packet = WormsPacket::new(PacketCode::CreateRoomReply)
-                .value_1(new_id)
-                .error_code(0)
+            let packet = WormsPacket::create(PacketCode::CreateRoomReply)
+                .with_value_1(new_id)
+                .with_error_code(0)
                 .build()?;
             tx.send(packet).await?;
         }

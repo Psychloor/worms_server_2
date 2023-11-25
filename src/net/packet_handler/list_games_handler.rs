@@ -30,16 +30,16 @@ impl PacketHandler for ListGamesHandler {
         }
 
         for game in db.games.iter().filter(|g| g.room_id == user_room_id) {
-            let packet = WormsPacket::new(PacketCode::ListItem)
-                .value_1(*game.key())
-                .data(&game.ip.to_string())
-                .name(&game.name)
-                .session(game.session.clone())
+            let packet = WormsPacket::create(PacketCode::ListItem)
+                .with_value_1(*game.key())
+                .with_data(&game.ip.to_string())
+                .with_name(&game.name)
+                .with_session(game.session.clone())
                 .build()?;
             tx.send(packet).await?;
         }
 
-        let packet = WormsPacket::new(PacketCode::ListEnd).build()?;
+        let packet = WormsPacket::create(PacketCode::ListEnd).build()?;
         tx.send(packet).await?;
 
         Ok(())

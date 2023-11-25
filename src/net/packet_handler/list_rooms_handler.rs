@@ -25,16 +25,16 @@ impl PacketHandler for ListRoomsHandler {
         }
 
         for room in db.rooms.iter() {
-            let packet = WormsPacket::new(PacketCode::ListItem)
-                .value_1(*room.key())
-                .data("")
-                .name(room.name.as_str())
-                .session(room.session.clone())
+            let packet = WormsPacket::create(PacketCode::ListItem)
+                .with_value_1(*room.key())
+                .with_data("")
+                .with_name(room.name.as_str())
+                .with_session(room.session.clone())
                 .build()?;
             tx.send(packet).await?;
         }
 
-        let packet = WormsPacket::new(PacketCode::ListEnd).build()?;
+        let packet = WormsPacket::create(PacketCode::ListEnd).build()?;
         tx.send(packet).await?;
 
         Ok(())

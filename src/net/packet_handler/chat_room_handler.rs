@@ -42,10 +42,10 @@ impl PacketHandler for ChatRoomHandler {
         if message.starts_with(&prefix) {
             // Check if user can access the room.
             if client_user.room_id == target_id {
-                let packet = WormsPacket::new(PacketCode::ChatRoom)
-                    .value_0(client_id)
-                    .value_3(client_user.room_id)
-                    .data(message)
+                let packet = WormsPacket::create(PacketCode::ChatRoom)
+                    .with_value_0(client_id)
+                    .with_value_3(client_user.room_id)
+                    .with_data(message)
                     .build()?;
 
                 for user in db
@@ -56,8 +56,8 @@ impl PacketHandler for ChatRoomHandler {
                     user.send_packet(Arc::clone(&packet)).await?;
                 }
 
-                let packet = WormsPacket::new(PacketCode::ChatRoomReply)
-                    .error_code(0)
+                let packet = WormsPacket::create(PacketCode::ChatRoomReply)
+                    .with_error_code(0)
                     .build()?;
 
                 tx.send(packet).await?;
@@ -72,16 +72,16 @@ impl PacketHandler for ChatRoomHandler {
             // Check if user can access the user.
             if let Some(target_user) = db.users.get(&target_id) {
                 if target_user.room_id == client_user.room_id {
-                    let packet = WormsPacket::new(PacketCode::ChatRoom)
-                        .value_0(client_id)
-                        .value_3(target_user.id)
-                        .data(message)
+                    let packet = WormsPacket::create(PacketCode::ChatRoom)
+                        .with_value_0(client_id)
+                        .with_value_3(target_user.id)
+                        .with_data(message)
                         .build()?;
 
                     target_user.send_packet(packet).await?;
 
-                    let packet = WormsPacket::new(PacketCode::ChatRoomReply)
-                        .error_code(0)
+                    let packet = WormsPacket::create(PacketCode::ChatRoomReply)
+                        .with_error_code(0)
                         .build()?;
                     tx.send(packet).await?;
                     return Ok(());
@@ -90,8 +90,8 @@ impl PacketHandler for ChatRoomHandler {
         }
 
         // Failed to send
-        let packet = WormsPacket::new(PacketCode::ChatRoomReply)
-            .error_code(1)
+        let packet = WormsPacket::create(PacketCode::ChatRoomReply)
+            .with_error_code(1)
             .build()?;
         tx.send(packet).await?;
 

@@ -22,6 +22,7 @@ pub(crate) struct Server;
 impl Server {
     const AUTHORIZED_TTL: Duration = Duration::from_secs(10 * 60);
     const UNAUTHORIZED_TTL: Duration = Duration::from_secs(3);
+    //noinspection RsBorrowChecker
     pub async fn start_server(
         database: Arc<Database>,
         address: impl ToSocketAddrs,
@@ -57,6 +58,7 @@ impl Server {
         Ok(())
     }
 
+    //noinspection RsBorrowChecker
     async fn handle_connection(
         stream: TcpStream,
         database: Arc<Database>,
@@ -170,9 +172,9 @@ impl Server {
             .ok_or(anyhow!("No nation specified!"))?;
 
         if Database::name_exists(db, name).await {
-            let packet = WormsPacket::new(PacketCode::LoginReply)
-                .value_1(0)
-                .error_code(1)
+            let packet = WormsPacket::create(PacketCode::LoginReply)
+                .with_value_1(0)
+                .with_error_code(1)
                 .build()?;
             tx.send(packet).await?;
             bail!("Failed to login: Name already exists")
@@ -182,18 +184,18 @@ impl Server {
 
             info!("User '{}' {} joined!", name, new_id);
 
-            let packet = WormsPacket::new(PacketCode::Login)
-                .value_1(new_id)
-                .value_4(0)
-                .name(name)
-                .session(new_user.session.clone())
+            let packet = WormsPacket::create(PacketCode::Login)
+                .with_value_1(new_id)
+                .with_value_4(0)
+                .with_name(name)
+                .with_session(new_user.session.clone())
                 .build()?;
             db.users.insert(new_id, new_user);
             Server::broadcast_all(Arc::clone(db), packet).await?;
 
-            let packet = WormsPacket::new(PacketCode::LoginReply)
-                .value_1(new_id)
-                .error_code(0)
+            let packet = WormsPacket::create(PacketCode::LoginReply)
+                .with_value_1(new_id)
+                .with_error_code(0)
                 .build()?;
             tx.send(packet).await?;
 
@@ -252,12 +254,12 @@ impl Server {
                 left_id = game_id;
 
                 debug!("Removing Game '{}'", game.name);
-                let leave_packet = WormsPacket::new(PacketCode::Leave)
-                    .value_2(left_id)
-                    .value_10(client_id)
+                let leave_packet = WormsPacket::create(PacketCode::Leave)
+                    .with_value_2(left_id)
+                    .with_value_10(client_id)
                     .build()?;
-                let close_packet = WormsPacket::new(PacketCode::Close)
-                    .value_10(left_id)
+                let close_packet = WormsPacket::create(PacketCode::Close)
+                    .with_value_10(left_id)
                     .build()?;
 
                 Server::broadcast_all(Arc::clone(&db), leave_packet).await?;
@@ -269,8 +271,8 @@ impl Server {
             .await
             .map_err(|e| anyhow!("Error leaving room for id '{}': {}", client_id, e))?;
 
-        let packet = WormsPacket::new(PacketCode::DisconnectUser)
-            .value_10(client_id)
+        let packet = WormsPacket::create(PacketCode::DisconnectUser)
+            .with_value_10(client_id)
             .build()?;
         Server::broadcast_all(db, packet).await?;
 
@@ -306,16 +308,16 @@ impl Server {
 
         // Notify users
         if room_exists {
-            let packet = WormsPacket::new(PacketCode::Leave)
-                .value_2(room_id)
-                .value_10(left_id)
+            let packet = WormsPacket::create(PacketCode::Leave)
+                .with_value_2(room_id)
+                .with_value_10(left_id)
                 .build()?;
             Server::broadcast_all_except(Arc::clone(&db), packet, &left_id).await?;
         }
 
         if room_abandoned {
-            let packet = WormsPacket::new(PacketCode::Close)
-                .value_10(room_id)
+            let packet = WormsPacket::create(PacketCode::Close)
+                .with_value_10(room_id)
                 .build()?;
             Server::broadcast_all_except(Arc::clone(&db), packet, &left_id).await?;
         }
