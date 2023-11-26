@@ -19,13 +19,14 @@ pub struct Database {
 
 impl Database {
     pub(crate) const ID_START: u32 = 0x1000;
+    const STARTING_CAPACITY: usize = 1024;
 
     pub fn new() -> Arc<Self> {
         Arc::new(Self {
-            users: DashMap::with_capacity(1024),
-            rooms: DashMap::with_capacity(1024),
-            games: DashMap::with_capacity(1024),
-            user_to_game: DashMap::with_capacity(1024),
+            users: DashMap::with_capacity(Database::STARTING_CAPACITY),
+            rooms: DashMap::with_capacity(Database::STARTING_CAPACITY),
+            games: DashMap::with_capacity(Database::STARTING_CAPACITY),
+            user_to_game: DashMap::with_capacity(Database::STARTING_CAPACITY),
             next_id: AtomicU32::new(Database::ID_START),
         })
     }
