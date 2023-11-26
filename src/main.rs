@@ -17,13 +17,13 @@ async fn main() -> anyhow::Result<()> {
     let args_windows = args.windows(2);
     for window in args_windows {
         match window {
-            [args, val] if args == "ip" => match val.parse::<Ipv4Addr>() {
+            [args, val] if args == "ip" => match val.parse() {
                 Ok(ip) => server_address.set_ip(IpAddr::V4(ip)),
                 Err(e) => {
                     error!("Error parsing ip! {}", e);
                 }
             },
-            [args, val] if args == "port" => match val.parse::<u16>() {
+            [args, val] if args == "port" => match val.parse() {
                 Ok(port) => server_address.set_port(port),
                 Err(e) => {
                     error!("Error parsing port! {}", e);
