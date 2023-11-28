@@ -1,6 +1,7 @@
 use crate::net::nation::Nation;
 use crate::net::session_access::SessionAccess;
 use crate::net::session_type::SessionType;
+use std::sync::Arc;
 
 #[derive(Debug, PartialOrd, PartialEq, Clone)]
 pub struct SessionInfo {
@@ -11,25 +12,25 @@ pub struct SessionInfo {
 }
 
 impl SessionInfo {
-    pub fn new(nation: Nation, session_type: SessionType) -> Self {
-        Self {
+    pub fn new(nation: Nation, session_type: SessionType) -> Arc<Self> {
+        Arc::new(Self {
             nation,
             session_type,
             ..Default::default()
-        }
+        })
     }
 
     pub fn new_with_access(
         nation: Nation,
         session_type: SessionType,
         session_access: SessionAccess,
-    ) -> Self {
-        Self {
+    ) -> Arc<Self> {
+        Arc::new(Self {
             nation,
             session_type,
             access: session_access,
             ..Default::default()
-        }
+        })
     }
 }
 

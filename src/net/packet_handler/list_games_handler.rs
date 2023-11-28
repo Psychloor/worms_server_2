@@ -34,7 +34,7 @@ impl PacketHandler for ListGamesHandler {
                 .with_value_1(*game.key())
                 .with_data(&game.ip.to_string())
                 .with_name(&game.name)
-                .with_session(game.session.clone())
+                .with_session(&game.session)
                 .build()?;
             tx.send(packet).await?;
         }

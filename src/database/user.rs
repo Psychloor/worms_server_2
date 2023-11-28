@@ -9,7 +9,7 @@ pub struct User {
     pub sender: WeakSender<Arc<Bytes>>,
     pub id: u32,
     pub name: String,
-    pub session: SessionInfo,
+    pub session: Arc<SessionInfo>,
     pub room_id: u32,
 }
 

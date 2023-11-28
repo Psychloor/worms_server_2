@@ -175,7 +175,7 @@ impl Decoder for WormCodec {
                     bail!("Invalid Data Buffer!");
                 }
             }
-            packet.session = Some(session_info);
+            packet.session = Some(Arc::new(session_info));
         }
 
         Ok(Some(Arc::new(packet)))

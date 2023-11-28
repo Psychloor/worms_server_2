@@ -56,7 +56,7 @@ impl PacketHandler for CreateRoomHandler {
                 .with_value_4(0)
                 .with_data("")
                 .with_name(room_name)
-                .with_session(new_room.session.clone())
+                .with_session(&new_room.session)
                 .build()?;
             db.rooms.insert(new_id, new_room);
 

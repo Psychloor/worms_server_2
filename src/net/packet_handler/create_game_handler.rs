@@ -71,7 +71,7 @@ impl PacketHandler for CreateGameHandler {
                     .with_value_4(0x800)
                     .with_data(&address.ip().to_string())
                     .with_name(&game.name)
-                    .with_session(game.session.clone())
+                    .with_session(&game.session)
                     .build()?;
 
                 db.games.insert(new_id, game);

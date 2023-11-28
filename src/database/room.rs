@@ -1,11 +1,12 @@
 use crate::net::nation::Nation;
 use crate::net::session_info::SessionInfo;
 use crate::net::session_type::SessionType;
+use std::sync::Arc;
 
 pub struct Room {
     pub id: u32,
     pub name: String,
-    pub session: SessionInfo,
+    pub session: Arc<SessionInfo>,
 }
 
 impl Room {

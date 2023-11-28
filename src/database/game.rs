@@ -3,13 +3,14 @@ use crate::net::session_access::SessionAccess;
 use crate::net::session_info::SessionInfo;
 use crate::net::session_type::SessionType;
 use std::net::IpAddr;
+use std::sync::Arc;
 
 pub struct Game {
     pub id: u32,
     pub name: String,
     pub room_id: u32,
     pub ip: IpAddr,
-    pub session: SessionInfo,
+    pub session: Arc<SessionInfo>,
 }
 
 impl Game {

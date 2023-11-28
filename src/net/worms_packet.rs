@@ -22,7 +22,7 @@ pub struct WormsPacket {
     pub data: Option<String>,
     pub error_code: Option<u32>,
     pub name: Option<String>,
-    pub session: Option<SessionInfo>,
+    pub session: Option<Arc<SessionInfo>>,
 }
 
 pub enum PacketField {
@@ -130,8 +130,8 @@ impl WormsPacket {
         self
     }
 
-    pub fn with_session(mut self, value: SessionInfo) -> Self {
-        self.session = Some(value);
+    pub fn with_session(mut self, value: &Arc<SessionInfo>) -> Self {
+        self.session = Some(Arc::clone(value));
         self.flags |= PacketField::Session.into_bit();
         self
     }

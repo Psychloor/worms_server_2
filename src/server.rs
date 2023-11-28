@@ -188,7 +188,7 @@ impl Server {
                 .with_value_1(new_id)
                 .with_value_4(0)
                 .with_name(name)
-                .with_session(new_user.session.clone())
+                .with_session(&new_user.session)
                 .build()?;
             db.users.insert(new_id, new_user);
             Server::broadcast_all(Arc::clone(db), packet).await?;

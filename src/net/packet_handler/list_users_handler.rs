@@ -33,7 +33,7 @@ impl PacketHandler for ListUsersHandler {
             let packet = WormsPacket::create(PacketCode::ListItem)
                 .with_value_1(*user.key())
                 .with_name(&user.name)
-                .with_session(user.session.clone())
+                .with_session(&user.session)
                 .build()?;
 
             tx.send(packet).await?;
