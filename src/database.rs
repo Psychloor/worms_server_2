@@ -39,10 +39,7 @@ impl Database {
                 Self::STARTING_CAPACITY,
                 BuildNoHashHasher::default(),
             ),
-            user_to_game: DashMap::with_capacity_and_hasher(
-                Database::STARTING_CAPACITY,
-                FxBuildHasher,
-            ),
+            user_to_game: DashMap::with_capacity_and_hasher(Self::STARTING_CAPACITY, FxBuildHasher),
             next_id: AtomicU32::new(Database::ID_START),
             reusable_ids: Arc::new(Mutex::new(Vec::new())),
         })
