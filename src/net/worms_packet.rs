@@ -1,7 +1,7 @@
 use crate::net::packet_code::PacketCode;
 use crate::net::session_info::SessionInfo;
 use anyhow::anyhow;
-use encoding_rs::WINDOWS_1251;
+use encoding_rs::WINDOWS_1252;
 use log::error;
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
@@ -160,10 +160,10 @@ impl WormsPacket {
             dst.put_u32_le(value);
         }
         if let Some(value) = &self.data {
-            let (encoded, _, had_error) = WINDOWS_1251.encode(value);
+            let (encoded, _, had_error) = WINDOWS_1252.encode(value);
             if had_error {
-                error!("Packet Data: Windows-1251 encode error");
-                return Err(anyhow!("Windows-1251 encode error"));
+                error!("Packet Data: Windows-1252 encode error");
+                return Err(anyhow!("Windows-1252 encode error"));
             }
 
             dst.put_u32_le(u32::try_from(encoded.len() + 1)?);
@@ -175,11 +175,11 @@ impl WormsPacket {
         }
         if let Some(value) = &self.name {
             let mut buffer = [b'\0'; MAX_NAME_LENGTH];
-            let (encoded, _, had_error) = WINDOWS_1251.encode(value);
+            let (encoded, _, had_error) = WINDOWS_1252.encode(value);
 
             if had_error {
-                error!("Packet Name: Windows-1251 encode error");
-                return Err(anyhow!("Windows-1251 encode error"));
+                error!("Packet Name: Windows-1252 encode error");
+                return Err(anyhow!("Windows-1252 encode error"));
             }
 
             let length = encoded.len().min(MAX_NAME_LENGTH);

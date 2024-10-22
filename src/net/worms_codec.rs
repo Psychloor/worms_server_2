@@ -1,7 +1,7 @@
 use crate::net::session_info::SessionInfo;
 use crate::net::worms_packet::{PacketField, WormsPacket};
 use anyhow::{anyhow, bail};
-use encoding_rs::WINDOWS_1251;
+use encoding_rs::WINDOWS_1252;
 use log::error;
 use std::sync::Arc;
 use tokio_util::bytes::{Buf, Bytes, BytesMut};
@@ -102,10 +102,10 @@ impl Decoder for WormCodec {
                 }
 
                 let data_bytes = src.split_to(length); // This avoids copying data
-                let (decoded, _, had_error) = WINDOWS_1251.decode(&data_bytes);
+                let (decoded, _, had_error) = WINDOWS_1252.decode(&data_bytes);
                 if had_error {
-                    error!("Packet Data: Windows-1251 decode error");
-                    bail!("Windows-1251 decode error");
+                    error!("Packet Data: Windows-1252 decode error");
+                    bail!("Windows-1252 decode error");
                 }
 
                 packet.data = Some(decoded.replace('\0', ""));
@@ -126,10 +126,10 @@ impl Decoder for WormCodec {
 
             let data_bytes = src.split_to(super::worms_packet::MAX_NAME_LENGTH);
 
-            let (decoded, _, had_error) = WINDOWS_1251.decode(&data_bytes);
+            let (decoded, _, had_error) = WINDOWS_1252.decode(&data_bytes);
             if had_error {
-                error!("Packet Name: Windows-1251 decode error");
-                bail!("Windows-1251 decode error");
+                error!("Packet Name: Windows-1252 decode error");
+                bail!("Windows-1252 decode error");
             }
 
             packet.name = Some(decoded.replace('\0', ""));
