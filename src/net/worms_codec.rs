@@ -125,8 +125,13 @@ impl Decoder for WormCodec {
             }
 
             let data_bytes = src.split_to(super::worms_packet::MAX_NAME_LENGTH);
+            let filtered_bytes: Vec<u8> = data_bytes
+                .iter()
+                .cloned()
+                .filter(|&byte| byte != b'\0')
+                .collect();
 
-            let (decoded, _, had_error) = WINDOWS_1252.decode(&data_bytes);
+            let (decoded, _, had_error) = WINDOWS_1252.decode(&filtered_bytes);
             if had_error {
                 error!("Packet Name: Windows-1252 decode error");
                 bail!("Windows-1252 decode error");
