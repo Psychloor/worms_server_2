@@ -9,6 +9,7 @@ use futures_util::SinkExt;
 use futures_util::StreamExt;
 use log::{debug, error, info};
 
+use futures_util::future::join_all;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
@@ -189,31 +190,44 @@ impl Server {
         }
     }
 
-    pub async fn broadcast_all(db: Arc<Database>, packet: Arc<Bytes>) -> anyhow::Result<()> {
-        for user in db.users.iter() {
-            if let Err(e) = user.send_packet(Arc::clone(&packet)).await {
-                error!("Error sending packet! {}", e);
+    async fn broadcast_all_with_filter<F>(
+        db: Arc<Database>,
+        packet: Arc<Bytes>,
+        filter: F,
+    ) -> Result<(), anyhow::Error>
+    where
+        F: Fn(&u32) -> bool + Send + Sync,
+    {
+        let futures = db.users.iter().filter_map(|entry| {
+            if filter(entry.key()) {
+                let packet = Arc::clone(&packet);
+                Some(async move {
+                    if let Err(e) = entry.value().send_packet(packet).await {
+                        error!(
+                            "Error sending packet to user {}: {:?}",
+                            entry.value().name,
+                            e
+                        );
+                    }
+                })
+            } else {
+                None
             }
-        }
+        });
 
+        join_all(futures).await;
         Ok(())
+    }
+
+    pub async fn broadcast_all(db: Arc<Database>, packet: Arc<Bytes>) -> anyhow::Result<()> {
+        Self::broadcast_all_with_filter(db, packet, |_| true).await
     }
     pub async fn broadcast_all_except(
         db: Arc<Database>,
         packet: Arc<Bytes>,
         ignored: &u32,
     ) -> anyhow::Result<()> {
-        for user in db.users.iter() {
-            if user.id == *ignored {
-                continue;
-            }
-
-            if let Err(e) = user.send_packet(Arc::clone(&packet)).await {
-                error!("Error sending packet! {}", e);
-            }
-        }
-
-        Ok(())
+        Self::broadcast_all_with_filter(db, packet, |user_id| *user_id != *ignored).await
     }
 
     pub async fn disconnect_user(db: Arc<Database>, client_id: u32) -> anyhow::Result<()> {
