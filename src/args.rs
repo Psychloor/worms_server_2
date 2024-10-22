@@ -8,7 +8,7 @@ pub(crate) struct Args {
     #[arg(short, long, default_value = "0.0.0.0")]
     pub(crate) ip: IpAddr,
 
-    /// Specific port to listen to, otherwise any assigned one
+    /// Specific port to listen to
     #[arg(short, long, default_value = "17000")]
     pub(crate) port: u16,
 }
