@@ -1,5 +1,5 @@
 use crate::net::session_info::SessionInfo;
-use crate::net::worms_packet::{PacketField, WormsPacket};
+use crate::net::worms_packet::{PacketFlags, WormsPacket};
 use anyhow::{anyhow, bail};
 use encoding_rs::WINDOWS_1252;
 use log::error;
@@ -43,51 +43,51 @@ impl Decoder for WormCodec {
                 bail!("Invalid Packet Header! {}", e);
             }
         }
-        packet.flags = src.get_u32_le();
+        packet.flags = PacketFlags::from_bits_truncate(src.get_u32_le());
 
-        if PacketField::is_flag_set(packet.flags, PacketField::Value0) {
+        if packet.flags.contains(PacketFlags::VALUE0) {
             if src.remaining() < 4 {
                 return Ok(None);
             }
             packet.value_0 = Option::from(src.get_u32_le());
         }
 
-        if PacketField::is_flag_set(packet.flags, PacketField::Value1) {
+        if packet.flags.contains(PacketFlags::VALUE1) {
             if src.remaining() < 4 {
                 return Ok(None);
             }
             packet.value_1 = Option::from(src.get_u32_le());
         }
 
-        if PacketField::is_flag_set(packet.flags, PacketField::Value2) {
+        if packet.flags.contains(PacketFlags::VALUE2) {
             if src.remaining() < 4 {
                 return Ok(None);
             }
             packet.value_2 = Option::from(src.get_u32_le());
         }
 
-        if PacketField::is_flag_set(packet.flags, PacketField::Value3) {
+        if packet.flags.contains(PacketFlags::VALUE3) {
             if src.remaining() < 4 {
                 return Ok(None);
             }
             packet.value_3 = Option::from(src.get_u32_le());
         }
 
-        if PacketField::is_flag_set(packet.flags, PacketField::Value4) {
+        if packet.flags.contains(PacketFlags::VALUE4) {
             if src.remaining() < 4 {
                 return Ok(None);
             }
             packet.value_4 = Option::from(src.get_u32_le());
         }
 
-        if PacketField::is_flag_set(packet.flags, PacketField::Value10) {
+        if packet.flags.contains(PacketFlags::VALUE10) {
             if src.remaining() < 4 {
                 return Ok(None);
             }
             packet.value_10 = Option::from(src.get_u32_le());
         }
 
-        if PacketField::is_flag_set(packet.flags, PacketField::DataLength) {
+        if packet.flags.contains(PacketFlags::DATALENGTH) {
             if src.remaining() < 4 {
                 return Ok(None);
             }
@@ -96,7 +96,7 @@ impl Decoder for WormCodec {
                 return Err(anyhow!("Data Length too long! {}", length));
             }
 
-            if PacketField::is_flag_set(packet.flags, PacketField::Data) {
+            if packet.flags.contains(PacketFlags::DATA) {
                 if src.remaining() < length {
                     return Ok(None);
                 }
@@ -112,14 +112,14 @@ impl Decoder for WormCodec {
             }
         }
 
-        if PacketField::is_flag_set(packet.flags, PacketField::ErrorCode) {
+        if packet.flags.contains(PacketFlags::ERRORCODE) {
             if src.remaining() < 4 {
                 return Ok(None);
             }
             packet.error_code = Some(src.get_u32_le());
         }
 
-        if PacketField::is_flag_set(packet.flags, PacketField::Name) {
+        if packet.flags.contains(PacketFlags::NAME) {
             if src.remaining() < super::worms_packet::MAX_NAME_LENGTH {
                 return Ok(None);
             }
@@ -140,7 +140,7 @@ impl Decoder for WormCodec {
             packet.name = Some(decoded.replace('\0', ""));
         }
 
-        if PacketField::is_flag_set(packet.flags, PacketField::Session) {
+        if packet.flags.contains(PacketFlags::SESSION) {
             if src.remaining() < 50 {
                 return Ok(None);
             }
