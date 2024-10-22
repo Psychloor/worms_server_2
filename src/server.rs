@@ -58,7 +58,6 @@ impl Server {
         Ok(())
     }
 
-    //noinspection RsBorrowChecker
     async fn handle_connection(
         stream: TcpStream,
         database: Arc<Database>,
@@ -168,7 +167,7 @@ impl Server {
         let session_nation = packet
             .session
             .as_ref()
-            .map(|s| s.nation.clone())
+            .map(|s| s.nation)
             .ok_or(anyhow!("No nation specified!"))?;
 
         if Database::name_exists(db, name).await {
@@ -244,6 +243,10 @@ impl Server {
         let mut left_id = client_id;
         let old_user = db.users.remove(&client_id);
 
+        // recycling
+        let old_user_id = old_user.as_ref().map_or(0, |entry| entry.0);
+        let mut old_game_id = 0_u32;
+
         let (mut room_id, client_name) =
             old_user.map_or((0, "".to_string()), |(_, u)| (u.room_id, u.name.clone()));
 
@@ -252,6 +255,7 @@ impl Server {
             if let Some((game_id, game)) = db.games.remove(&lookup_gid) {
                 room_id = game.room_id;
                 left_id = game_id;
+                old_game_id = left_id;
 
                 debug!("Removing Game '{}'", game.name);
                 let leave_packet = WormsPacket::create(PacketCode::Leave)
@@ -274,7 +278,11 @@ impl Server {
         let packet = WormsPacket::create(PacketCode::DisconnectUser)
             .with_value_10(client_id)
             .build()?;
-        Server::broadcast_all(db, packet).await?;
+        Server::broadcast_all(db.clone(), packet).await?;
+
+        // Recycle late after all has been removed
+        Database::recycle_id(db.clone(), old_user_id).await;
+        Database::recycle_id(db.clone(), old_game_id).await;
 
         Ok(())
     }
@@ -320,6 +328,8 @@ impl Server {
                 .with_value_10(room_id)
                 .build()?;
             Server::broadcast_all_except(Arc::clone(&db), packet, &left_id).await?;
+
+            Database::recycle_id(db.clone(), room_id).await;
         }
 
         Ok(())
