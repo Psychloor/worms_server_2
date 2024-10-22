@@ -22,7 +22,7 @@ pub(crate) struct Server;
 impl Server {
     const AUTHORIZED_TTL: Duration = Duration::from_secs(10 * 60);
     const UNAUTHORIZED_TTL: Duration = Duration::from_secs(3);
-    //noinspection RsBorrowChecker
+
     pub async fn start_server(
         database: Arc<Database>,
         address: impl ToSocketAddrs,
@@ -67,7 +67,6 @@ impl Server {
         let mut timeout_duration = Server::UNAUTHORIZED_TTL;
         let sender_addr = stream.peer_addr()?;
         let (tx, mut rx) = tokio::sync::mpsc::channel::<Arc<Bytes>>(100);
-
         let framed = Framed::new(stream, WormCodec);
         let (mut sink, mut stream) = framed.split();
 
@@ -78,7 +77,7 @@ impl Server {
                         debug!("Received Packet: {:?}", packet);
                         match packet.header_code {
                             PacketCode::Login if user_id == 0 => {
-                                let login_result = Server::login_client(&database,&packet, &tx).await;
+                                let login_result = Server::login_client(&database, packet, &tx).await;
                                 match login_result {
                                     Ok(id) => {
                                         user_id = id;
@@ -90,9 +89,7 @@ impl Server {
                                     }
                                 }
                             },
-
-                            _ if user_id == 0 =>{continue;},
-
+                            _ if user_id == 0 => { continue; },
                             packet_code => {
                                 if let Err(e) = packet_handler::dispatch(packet_code, &database, &tx, packet, user_id, &sender_addr).await {
                                     error!("Error Handling Packet: {}", e);
@@ -102,59 +99,49 @@ impl Server {
                         }
                     },
                     Ok(Some(Err(e))) => {
-                        // Handle error in received packet, break from loop if necessary
                         error!("Error receiving packet: {}", e);
                         break 'client;
                     },
                     Ok(None) => {
-                        // The stream has ended normally (stream.next() returned None)
                         break 'client;
                     },
                     Err(e) => {
-                        // Timeout occurred
                         info!("Timeout {}: {}", user_id, e);
                         break 'client;
                     }
                 },
-
                 rx_result = rx.recv() => {
                     if let Some(packet) = rx_result {
-                                    let mut sent_packets = 1usize;
-
-                                    if let Err(e) =sink.feed(packet).await {
-                                        error!("Error feeding packet! {}", e);
-                                        break 'client;
-                                    }
-                                    // see if we have more packets
-                                    'packet_feed: while let Ok(packet) = rx.try_recv() {
-                                        sent_packets += 1;
-                                         if let Err(e) =sink.feed(packet).await {
-                                            error!("Error feeding packet! {}", e);
-                                            break 'client;
-                                        }
-                                        // No overwhelming
-                                        if sent_packets >= 20 {
-                                            break 'packet_feed;
-                                        }
-                                    }
-                                     if let Err(e) =sink.flush().await {
-                                        error!("Error flushing sink! {}", e);
-                                        break 'client;
-                                    }
-                                } else {
-                                    // The channel has been closed
-                                    break 'client;
-                                }
-                            },
+                        let mut sent_packets = 1usize;
+                        if let Err(e) = sink.feed(packet).await{
+                            error!("Error feeding packet! {}", e);
+                            break 'client;
+                        }
+                        'packet_feed: while let Ok(packet) = rx.try_recv(){
+                            sent_packets += 1;
+                            if let Err(e) = sink.feed(packet).await{
+                                error!("Error feeding packet! {}", e);
+                                break 'client;
+                            }
+                            if sent_packets >= 20 {
+                                break 'packet_feed;
+                            }
+                        }
+                        if let Err(e) = sink.flush().await{
+                            error!("Error flushing sink! {}", e);
+                            break 'client;
+                        }
+                    } else {
+                        break 'client;
+                    }
+                },
                 _ = cancellation_token.cancelled() => {
-                    // since server is shutting down, no need to notify and remove and all
                     return Ok(());
                 }
             }
         }
 
         Server::disconnect_user(Arc::clone(&database), user_id).await?;
-
         Ok(())
     }
 
@@ -170,7 +157,7 @@ impl Server {
             .map(|s| s.nation)
             .ok_or(anyhow!("No nation specified!"))?;
 
-        if Database::name_exists(db, name).await {
+        if Database::check_user_exists(db, name).await {
             let packet = WormsPacket::create(PacketCode::LoginReply)
                 .with_value_1(0)
                 .with_error_code(1)

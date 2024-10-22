@@ -64,7 +64,7 @@ impl Database {
         }
     }
 
-    pub async fn name_exists(db: &Arc<Database>, name: &str) -> bool {
+    pub async fn check_user_exists(db: &Arc<Database>, name: &str) -> bool {
         db.users.iter().any(|u| u.name.eq_ignore_ascii_case(name))
     }
 }
