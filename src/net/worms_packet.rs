@@ -187,8 +187,6 @@ impl WormsPacket {
         }
 
         if let Some(session) = &self.session {
-            /*dst.put_u32_le(crate::net::worms_codec::CRC_FIRST);
-            dst.put_u32_le(crate::net::worms_codec::CRC_SECOND);*/
             dst.put_u64_le(crate::net::worms_codec::CRC);
             dst.put_u8(session.nation.into());
             dst.put_u8(49);
