@@ -3,7 +3,7 @@ use crate::net::session_access::SessionAccess;
 use crate::net::session_type::SessionType;
 use std::sync::Arc;
 
-#[derive(Debug, PartialOrd, PartialEq, Clone)]
+#[derive(Debug, PartialOrd, PartialEq)]
 pub struct SessionInfo {
     pub nation: Nation,
     pub game_release: u8,

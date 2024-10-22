@@ -13,6 +13,7 @@ pub const EMPTY_BUFFER: [u8; 35] = [0u8; 35];
 pub const CRC_FIRST: u32 = 0x17171717;
 pub const CRC_SECOND: u32 = 0x02010101;
 const MAX_DATA_LENGTH: usize = 0x200;
+const ZEROES_EXPECTED: usize = 35;
 
 impl Encoder<Arc<Bytes>> for WormCodec {
     type Error = anyhow::Error;
@@ -170,11 +171,12 @@ impl Decoder for WormCodec {
             if src.get_u8() != 0 {
                 bail!("Invalid Data! Expected 0");
             }
-            for _ in 0..35 {
+            for _ in 0..ZEROES_EXPECTED {
                 if src.get_u8() != 0 {
                     bail!("Invalid Data Buffer!");
                 }
             }
+
             packet.session = Some(Arc::new(session_info));
         }
 
