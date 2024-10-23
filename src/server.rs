@@ -17,7 +17,6 @@ use tokio::sync::mpsc::Sender;
 use tokio::time;
 use tokio_util::bytes::Bytes;
 use tokio_util::codec::Framed;
-use tokio_util::sync::CancellationToken;
 
 pub(crate) struct Server;
 impl Server {
