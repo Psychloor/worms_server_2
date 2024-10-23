@@ -7,11 +7,10 @@ use crate::database::room::Room;
 use crate::database::user::User;
 use dashmap::DashMap;
 use nohash_hasher::BuildNoHashHasher;
+use parking_lot::Mutex;
 use rustc_hash::FxBuildHasher;
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::{Arc, LazyLock};
-use tokio::sync::Mutex;
-use tokio::task;
+use std::sync::LazyLock;
 
 pub static DATABASE: LazyLock<Database> = LazyLock::new(Database::initialize);
 
@@ -21,7 +20,7 @@ pub struct Database {
     pub games: DashMap<u32, Game, BuildNoHashHasher<u32>>,
     pub user_to_game: DashMap<String, u32, FxBuildHasher>,
     next_id: AtomicU32,
-    reusable_ids: Arc<Mutex<Vec<u32>>>,
+    reusable_ids: Mutex<Vec<u32>>,
 }
 
 impl Database {
@@ -44,14 +43,13 @@ impl Database {
             ),
             user_to_game: DashMap::with_capacity_and_hasher(Self::STARTING_CAPACITY, FxBuildHasher),
             next_id: AtomicU32::new(Database::ID_START),
-            reusable_ids: Arc::new(Mutex::new(Vec::new())),
+            reusable_ids: Mutex::new(Vec::new()),
         }
     }
 
     pub async fn get_next_id() -> u32 {
         let db = &DATABASE;
-        let mut lock = db.reusable_ids.lock().await;
-        if let Some(id) = lock.pop() {
+        if let Some(id) = db.reusable_ids.lock().pop() {
             return id;
         }
 
@@ -60,10 +58,8 @@ impl Database {
 
     pub fn recycle_id(id: u32) {
         if id >= Database::ID_START {
-            task::spawn(async move {
-                let db = &DATABASE;
-                db.reusable_ids.lock().await.push(id);
-            });
+            let db = &DATABASE;
+            db.reusable_ids.lock().push(id);
         }
     }
 
