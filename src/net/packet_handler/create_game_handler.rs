@@ -13,7 +13,7 @@ use tokio_util::bytes::Bytes;
 
 pub struct CreateGameHandler;
 
-const INVALID_MESSAGE: &'static str = "GRP:Cannot host your game. Please use FrontendKitWS with fkNetcode. More information at worms2d.info/fkNetcode";
+const INVALID_MESSAGE: &str = "GRP:Cannot host your game. Please use FrontendKitWS with fkNetcode. More information at worms2d.info/fkNetcode";
 
 #[async_trait]
 impl PacketHandler for CreateGameHandler {
