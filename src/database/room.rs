@@ -3,7 +3,6 @@ use crate::net::nation::Nation;
 use crate::net::session_info::SessionInfo;
 use crate::net::session_type::SessionType;
 use std::sync::{Arc, Weak};
-use tokio::task;
 
 pub struct Room {
     pub id: u32,
@@ -25,13 +24,6 @@ impl Room {
 
 impl Drop for Room {
     fn drop(&mut self) {
-        let id = self.id;
-        let db = self.db.clone();
-
-        task::spawn(async move {
-            if let Some(db) = db.upgrade() {
-                Database::recycle_id(db, id).await;
-            }
-        });
+        Database::recycle_id(self.db.clone(), self.id);
     }
 }

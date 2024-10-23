@@ -9,8 +9,9 @@ use dashmap::DashMap;
 use nohash_hasher::BuildNoHashHasher;
 use rustc_hash::FxBuildHasher;
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 use tokio::sync::Mutex;
+use tokio::task;
 
 pub struct Database {
     pub users: DashMap<u32, User, BuildNoHashHasher<u32>>,
@@ -54,10 +55,13 @@ impl Database {
         db.next_id.fetch_add(1, Ordering::Relaxed)
     }
 
-    pub async fn recycle_id(db: Arc<Database>, id: u32) {
+    pub fn recycle_id(db: Weak<Database>, id: u32) {
         if id >= Database::ID_START {
-            let mut lock = db.reusable_ids.lock().await;
-            lock.push(id);
+            task::spawn(async move {
+                if let Some(db) = db.upgrade() {
+                    db.reusable_ids.lock().await.push(id);
+                }
+            });
         }
     }
 
