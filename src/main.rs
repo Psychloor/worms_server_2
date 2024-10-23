@@ -14,6 +14,7 @@ pub(crate) mod server;
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> anyhow::Result<()> {
+    dotenv::dotenv().ok();
     pretty_env_logger::init();
 
     let args = Args::try_parse().map_err(|e| anyhow!("Error parsings args!").context(e))?;
