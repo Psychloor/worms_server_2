@@ -1,4 +1,4 @@
-use crate::database::Database;
+use crate::database::DATABASE;
 use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
@@ -14,7 +14,6 @@ pub struct ListRoomsHandler;
 #[async_trait]
 impl PacketHandler for ListRoomsHandler {
     async fn handle_packet(
-        db: &Arc<Database>,
         tx: &Sender<Arc<Bytes>>,
         packet: &Arc<WormsPacket>,
         _client_id: u32,
@@ -24,6 +23,7 @@ impl PacketHandler for ListRoomsHandler {
             bail!("Invalid Data!");
         }
 
+        let db = &DATABASE;
         for room in db.rooms.iter() {
             let packet = WormsPacket::create(PacketCode::ListItem)
                 .with_value_1(*room.key())

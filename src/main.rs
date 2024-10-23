@@ -4,7 +4,6 @@ use clap::Parser;
 use log::{error, info};
 use server::Server;
 use std::net::SocketAddr;
-use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 
 mod args;
@@ -29,11 +28,8 @@ async fn main() -> anyhow::Result<()> {
         ct_clone.cancel();
     });
 
-    let database = database::Database::new();
     let server_address = SocketAddr::new(args.ip, args.port);
-    if let Err(e) =
-        Server::start_server(Arc::clone(&database), server_address, cancellation_token).await
-    {
+    if let Err(e) = Server::start_server(server_address, cancellation_token).await {
         error!("Error from server: {}", e);
     }
 

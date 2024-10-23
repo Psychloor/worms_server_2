@@ -1,4 +1,4 @@
-use crate::database::Database;
+use crate::database::{Database, DATABASE};
 use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
@@ -14,12 +14,12 @@ pub struct ListUsersHandler;
 #[async_trait]
 impl PacketHandler for ListUsersHandler {
     async fn handle_packet(
-        db: &Arc<Database>,
         tx: &Sender<Arc<Bytes>>,
         packet: &Arc<WormsPacket>,
         client_id: u32,
         _address: &SocketAddr,
     ) -> anyhow::Result<()> {
+        let db = &DATABASE;
         let user_room_id = db.users.get(&client_id).map_or(0, |user| user.room_id);
 
         if user_room_id < Database::ID_START

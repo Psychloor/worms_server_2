@@ -1,4 +1,4 @@
-use crate::database::Database;
+use crate::database::DATABASE;
 use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
@@ -14,7 +14,6 @@ pub struct ChatRoomHandler;
 #[async_trait]
 impl PacketHandler for ChatRoomHandler {
     async fn handle_packet(
-        db: &Arc<Database>,
         tx: &Sender<Arc<Bytes>>,
         packet: &Arc<WormsPacket>,
         client_id: u32,
@@ -32,6 +31,7 @@ impl PacketHandler for ChatRoomHandler {
             .value_3
             .ok_or(anyhow!("No target id included in chat packet!"))?;
 
+        let db = &DATABASE;
         let client_user = db
             .users
             .get(&client_id)

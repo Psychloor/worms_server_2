@@ -1,4 +1,4 @@
-use crate::database::Database;
+use crate::database::DATABASE;
 use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
@@ -16,7 +16,6 @@ pub struct LeaveHandler;
 #[async_trait]
 impl PacketHandler for LeaveHandler {
     async fn handle_packet(
-        db: &Arc<Database>,
         tx: &Sender<Arc<Bytes>>,
         packet: &Arc<WormsPacket>,
         client_id: u32,
@@ -26,10 +25,11 @@ impl PacketHandler for LeaveHandler {
             bail!("Invalid Data!");
         }
 
+        let db = &DATABASE;
         let client_room_id = { db.users.get(&client_id).map_or(0, |u| u.room_id) };
 
         if packet.value_2 == Some(client_room_id) {
-            let leave_result = Server::leave_room(Arc::clone(db), client_room_id, client_id).await;
+            let leave_result = Server::leave_room(client_room_id, client_id).await;
             {
                 if leave_result.is_err() {
                     error!("Error leaving room: {:?}", leave_result.err().unwrap())

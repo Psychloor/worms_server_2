@@ -1,4 +1,3 @@
-use crate::database::Database;
 use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
@@ -13,7 +12,6 @@ pub struct CloseHandler;
 #[async_trait]
 impl PacketHandler for CloseHandler {
     async fn handle_packet(
-        _db: &Arc<Database>,
         tx: &Sender<Arc<Bytes>>,
         packet: &Arc<WormsPacket>,
         _client_id: u32,

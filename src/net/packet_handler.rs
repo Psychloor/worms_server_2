@@ -9,7 +9,6 @@ pub(crate) mod list_games_handler;
 pub(crate) mod list_rooms_handler;
 pub(crate) mod list_users_handler;
 
-use crate::database::Database;
 use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::chat_room_handler::ChatRoomHandler;
 use crate::net::packet_handler::close_handler::CloseHandler;
@@ -33,7 +32,6 @@ use tokio_util::bytes::Bytes;
 #[async_trait]
 pub trait PacketHandler {
     async fn handle_packet(
-        db: &Arc<Database>,
         tx: &Sender<Arc<Bytes>>,
         packet: &Arc<WormsPacket>,
         _client_id: u32,
@@ -43,7 +41,6 @@ pub trait PacketHandler {
 
 pub async fn dispatch(
     code: PacketCode,
-    db: &Arc<Database>,
     tx: &Sender<Arc<Bytes>>,
     packet: &Arc<WormsPacket>,
     client_id: u32,
@@ -52,38 +49,38 @@ pub async fn dispatch(
     debug!("Dispatching handler for: {:?}", &code);
     match code {
         PacketCode::ListRooms => {
-            ListRoomsHandler::handle_packet(db, tx, packet, client_id, address).await
+            ListRoomsHandler::handle_packet(tx, packet, client_id, address).await
         }
 
         PacketCode::CreateRoom => {
-            CreateRoomHandler::handle_packet(db, tx, packet, client_id, address).await
+            CreateRoomHandler::handle_packet(tx, packet, client_id, address).await
         }
 
         PacketCode::ListUsers => {
-            ListUsersHandler::handle_packet(db, tx, packet, client_id, address).await
+            ListUsersHandler::handle_packet(tx, packet, client_id, address).await
         }
 
         PacketCode::ListGames => {
-            ListGamesHandler::handle_packet(db, tx, packet, client_id, address).await
+            ListGamesHandler::handle_packet(tx, packet, client_id, address).await
         }
 
-        PacketCode::Join => JoinHandler::handle_packet(db, tx, packet, client_id, address).await,
+        PacketCode::Join => JoinHandler::handle_packet(tx, packet, client_id, address).await,
 
         PacketCode::CreateGame => {
-            CreateGameHandler::handle_packet(db, tx, packet, client_id, address).await
+            CreateGameHandler::handle_packet(tx, packet, client_id, address).await
         }
 
         PacketCode::ChatRoom => {
-            ChatRoomHandler::handle_packet(db, tx, packet, client_id, address).await
+            ChatRoomHandler::handle_packet(tx, packet, client_id, address).await
         }
 
         PacketCode::ConnectGame => {
-            ConnectGameHandler::handle_packet(db, tx, packet, client_id, address).await
+            ConnectGameHandler::handle_packet(tx, packet, client_id, address).await
         }
 
-        PacketCode::Close => CloseHandler::handle_packet(db, tx, packet, client_id, address).await,
+        PacketCode::Close => CloseHandler::handle_packet(tx, packet, client_id, address).await,
 
-        PacketCode::Leave => LeaveHandler::handle_packet(db, tx, packet, client_id, address).await,
+        PacketCode::Leave => LeaveHandler::handle_packet(tx, packet, client_id, address).await,
 
         _ => Err(anyhow!("Unknown packet dispatched! {:?}", code)),
     }

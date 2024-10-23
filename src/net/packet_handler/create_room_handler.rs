@@ -1,5 +1,5 @@
 use crate::database::room::Room;
-use crate::database::Database;
+use crate::database::{Database, DATABASE};
 use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
@@ -16,7 +16,6 @@ pub struct CreateRoomHandler;
 #[async_trait]
 impl PacketHandler for CreateRoomHandler {
     async fn handle_packet(
-        db: &Arc<Database>,
         tx: &Sender<Arc<Bytes>>,
         packet: &Arc<WormsPacket>,
         client_id: u32,
@@ -36,6 +35,7 @@ impl PacketHandler for CreateRoomHandler {
             .as_ref()
             .ok_or(anyhow!("no room name included in create room handler!"))?;
 
+        let db = &DATABASE;
         if db
             .rooms
             .iter()
@@ -47,13 +47,8 @@ impl PacketHandler for CreateRoomHandler {
                 .build()?;
             tx.send(packet).await?;
         } else {
-            let new_id = Database::get_next_id(db).await;
-            let new_room = Room::new(
-                new_id,
-                room_name,
-                packet.session.as_ref().unwrap().nation,
-                Arc::downgrade(db),
-            );
+            let new_id = Database::get_next_id().await;
+            let new_room = Room::new(new_id, room_name, packet.session.as_ref().unwrap().nation);
 
             // Notify all users of this newly made room, made early since the room will be consumed
             let packet = WormsPacket::create(PacketCode::CreateRoom)
@@ -65,7 +60,7 @@ impl PacketHandler for CreateRoomHandler {
                 .build()?;
             db.rooms.insert(new_id, new_room);
 
-            Server::broadcast_all_except(Arc::clone(db), packet, &client_id).await?;
+            Server::broadcast_all_except(packet, &client_id).await?;
 
             // Success packet to sender
             let packet = WormsPacket::create(PacketCode::CreateRoomReply)

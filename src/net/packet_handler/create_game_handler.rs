@@ -1,5 +1,5 @@
 use crate::database::game::Game;
-use crate::database::Database;
+use crate::database::{Database, DATABASE};
 use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
@@ -18,12 +18,13 @@ const INVALID_MESSAGE: &str = "GRP:Cannot host your game. Please use FrontendKit
 #[async_trait]
 impl PacketHandler for CreateGameHandler {
     async fn handle_packet(
-        db: &Arc<Database>,
         tx: &Sender<Arc<Bytes>>,
         packet: &Arc<WormsPacket>,
         client_id: u32,
         address: &SocketAddr,
     ) -> anyhow::Result<()> {
+        let db = &DATABASE;
+
         let client_user = db
             .users
             .get(&client_id)
@@ -50,7 +51,7 @@ impl PacketHandler for CreateGameHandler {
 
         if let Ok(ip) = ip_result {
             if address.ip().to_string() == "127.0.0.1" || ip == address.ip() {
-                let new_id = Database::get_next_id(db).await;
+                let new_id = Database::get_next_id().await;
 
                 let game = Game::new(
                     new_id,
@@ -59,7 +60,6 @@ impl PacketHandler for CreateGameHandler {
                     client_user.room_id,
                     address.ip(),
                     packet.session.as_ref().unwrap().access,
-                    Arc::downgrade(db),
                 );
 
                 {
@@ -76,7 +76,7 @@ impl PacketHandler for CreateGameHandler {
                     .build()?;
 
                 db.games.insert(new_id, game);
-                Server::broadcast_all_except(Arc::clone(db), packet, &client_id).await?;
+                Server::broadcast_all_except(packet, &client_id).await?;
 
                 let packet = WormsPacket::create(PacketCode::CreateGameReply)
                     .with_value_1(new_id)

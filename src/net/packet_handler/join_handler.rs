@@ -1,4 +1,4 @@
-use crate::database::Database;
+use crate::database::DATABASE;
 use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
@@ -15,12 +15,13 @@ pub struct JoinHandler;
 #[async_trait]
 impl PacketHandler for JoinHandler {
     async fn handle_packet(
-        db: &Arc<Database>,
         tx: &Sender<Arc<Bytes>>,
         packet: &Arc<WormsPacket>,
         client_id: u32,
         _address: &SocketAddr,
     ) -> anyhow::Result<()> {
+        let db = &DATABASE;
+
         let join_id = packet.value_2.as_ref().map_or(0, |p| *p);
         let user_room_id_original = db.users.get(&client_id).map_or(0, |u| u.room_id);
 
@@ -39,7 +40,7 @@ impl PacketHandler for JoinHandler {
                 .with_value_2(join_id)
                 .with_value_10(client_id)
                 .build()?;
-            Server::broadcast_all_except(Arc::clone(db), packet, &client_id).await?;
+            Server::broadcast_all_except(packet, &client_id).await?;
 
             let packet = WormsPacket::create(PacketCode::JoinReply)
                 .with_error_code(0)
@@ -53,7 +54,7 @@ impl PacketHandler for JoinHandler {
                     .with_value_2(join_id)
                     .with_value_10(client_id)
                     .build()?;
-                Server::broadcast_all_except(Arc::clone(db), packet, &client_id).await?;
+                Server::broadcast_all_except(packet, &client_id).await?;
 
                 let packet = WormsPacket::create(PacketCode::JoinReply)
                     .with_error_code(0)

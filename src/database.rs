@@ -9,9 +9,11 @@ use dashmap::DashMap;
 use nohash_hasher::BuildNoHashHasher;
 use rustc_hash::FxBuildHasher;
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::{Arc, Weak};
+use std::sync::{Arc, LazyLock};
 use tokio::sync::Mutex;
 use tokio::task;
+
+pub static DATABASE: LazyLock<Database> = LazyLock::new(Database::initialize);
 
 pub struct Database {
     pub users: DashMap<u32, User, BuildNoHashHasher<u32>>,
@@ -26,8 +28,8 @@ impl Database {
     pub(crate) const ID_START: u32 = 0x1000;
     const STARTING_CAPACITY: usize = 1024;
 
-    pub fn new() -> Arc<Self> {
-        Arc::new(Self {
+    fn initialize() -> Self {
+        Self {
             users: DashMap::with_capacity_and_hasher(
                 Self::STARTING_CAPACITY,
                 BuildNoHashHasher::default(),
@@ -43,10 +45,11 @@ impl Database {
             user_to_game: DashMap::with_capacity_and_hasher(Self::STARTING_CAPACITY, FxBuildHasher),
             next_id: AtomicU32::new(Database::ID_START),
             reusable_ids: Arc::new(Mutex::new(Vec::new())),
-        })
+        }
     }
 
-    pub async fn get_next_id(db: &Arc<Database>) -> u32 {
+    pub async fn get_next_id() -> u32 {
+        let db = &DATABASE;
         let mut lock = db.reusable_ids.lock().await;
         if let Some(id) = lock.pop() {
             return id;
@@ -55,17 +58,17 @@ impl Database {
         db.next_id.fetch_add(1, Ordering::Relaxed)
     }
 
-    pub fn recycle_id(db: Weak<Database>, id: u32) {
+    pub fn recycle_id(id: u32) {
         if id >= Database::ID_START {
             task::spawn(async move {
-                if let Some(db) = db.upgrade() {
-                    db.reusable_ids.lock().await.push(id);
-                }
+                let db = &DATABASE;
+                db.reusable_ids.lock().await.push(id);
             });
         }
     }
 
-    pub async fn check_user_exists(db: &Arc<Database>, name: &str) -> bool {
+    pub async fn check_user_exists(name: &str) -> bool {
+        let db = &DATABASE;
         db.users.iter().any(|u| u.name.eq_ignore_ascii_case(name))
     }
 }

@@ -1,5 +1,5 @@
 use crate::database::user::User;
-use crate::database::Database;
+use crate::database::{Database, DATABASE};
 use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler;
 use crate::net::worms_codec::WormCodec;
@@ -25,7 +25,6 @@ impl Server {
     const UNAUTHORIZED_TTL: Duration = Duration::from_secs(3);
 
     pub async fn start_server(
-        database: Arc<Database>,
         address: impl ToSocketAddrs,
         token: CancellationToken,
     ) -> anyhow::Result<()> {
@@ -45,9 +44,8 @@ impl Server {
                     if let Ok((stream, _)) = listen_result {
                         stream.set_nodelay(true)?;
 
-                        let db_clone = Arc::clone(&database);
                         let token_clone = token.clone();
-                        tokio::spawn(Server::handle_connection(stream, db_clone, token_clone));
+                        tokio::spawn(Server::handle_connection(stream, token_clone));
                     }
                 },
                 _ = token.cancelled() => {
@@ -61,7 +59,6 @@ impl Server {
 
     async fn handle_connection(
         stream: TcpStream,
-        database: Arc<Database>,
         cancellation_token: CancellationToken,
     ) -> anyhow::Result<()> {
         let mut user_id: u32 = 0;
@@ -78,7 +75,7 @@ impl Server {
                         debug!("Received Packet: {:?}", packet);
                         match packet.header_code {
                             PacketCode::Login if user_id == 0 => {
-                                let login_result = Server::login_client(&database, packet, &tx).await;
+                                let login_result = Server::login_client(packet, &tx).await;
                                 match login_result {
                                     Ok(id) => {
                                         user_id = id;
@@ -92,7 +89,7 @@ impl Server {
                             },
                             _ if user_id == 0 => { continue; },
                             packet_code => {
-                                if let Err(e) = packet_handler::dispatch(packet_code, &database, &tx, packet, user_id, &sender_addr).await {
+                                if let Err(e) = packet_handler::dispatch(packet_code, &tx, packet, user_id, &sender_addr).await {
                                     error!("Error Handling Packet: {}", e);
                                     break 'client;
                                 }
@@ -142,12 +139,11 @@ impl Server {
             }
         }
 
-        Server::disconnect_user(Arc::clone(&database), user_id).await?;
+        Server::disconnect_user(user_id).await?;
         Ok(())
     }
 
     async fn login_client(
-        db: &Arc<Database>,
         packet: &Arc<WormsPacket>,
         tx: &Sender<Arc<Bytes>>,
     ) -> anyhow::Result<u32> {
@@ -158,7 +154,7 @@ impl Server {
             .map(|s| s.nation)
             .ok_or(anyhow!("No nation specified!"))?;
 
-        if Database::check_user_exists(db, name).await {
+        if Database::check_user_exists(name).await {
             let packet = WormsPacket::create(PacketCode::LoginReply)
                 .with_value_1(0)
                 .with_error_code(1)
@@ -166,14 +162,8 @@ impl Server {
             tx.send(packet).await?;
             bail!("Failed to login: Name already exists")
         } else {
-            let new_id = Database::get_next_id(db).await;
-            let new_user = User::new(
-                tx.clone().downgrade(),
-                new_id,
-                name,
-                session_nation,
-                Arc::downgrade(db),
-            );
+            let new_id = Database::get_next_id().await;
+            let new_user = User::new(tx.clone().downgrade(), new_id, name, session_nation);
 
             info!("User '{}' {} joined!", name, new_id);
 
@@ -183,8 +173,10 @@ impl Server {
                 .with_name(name)
                 .with_session(&new_user.session)
                 .build()?;
+
+            let db = &DATABASE;
             db.users.insert(new_id, new_user);
-            Server::broadcast_all(Arc::clone(db), packet).await?;
+            Server::broadcast_all(packet).await?;
 
             let packet = WormsPacket::create(PacketCode::LoginReply)
                 .with_value_1(new_id)
@@ -197,13 +189,13 @@ impl Server {
     }
 
     async fn broadcast_all_with_filter<F>(
-        db: Arc<Database>,
         packet: Arc<Bytes>,
         filter: F,
     ) -> Result<(), anyhow::Error>
     where
         F: Fn(&u32) -> bool + Send + Sync,
     {
+        let db = &DATABASE;
         let futures = db.users.iter().filter_map(|entry| {
             if filter(entry.key()) {
                 let packet = Arc::clone(&packet);
@@ -225,22 +217,19 @@ impl Server {
         Ok(())
     }
 
-    pub async fn broadcast_all(db: Arc<Database>, packet: Arc<Bytes>) -> anyhow::Result<()> {
-        Self::broadcast_all_with_filter(db, packet, |_| true).await
+    pub async fn broadcast_all(packet: Arc<Bytes>) -> anyhow::Result<()> {
+        Self::broadcast_all_with_filter(packet, |_| true).await
     }
-    pub async fn broadcast_all_except(
-        db: Arc<Database>,
-        packet: Arc<Bytes>,
-        ignored: &u32,
-    ) -> anyhow::Result<()> {
-        Self::broadcast_all_with_filter(db, packet, |user_id| *user_id != *ignored).await
+    pub async fn broadcast_all_except(packet: Arc<Bytes>, ignored: &u32) -> anyhow::Result<()> {
+        Self::broadcast_all_with_filter(packet, |user_id| *user_id != *ignored).await
     }
 
-    pub async fn disconnect_user(db: Arc<Database>, client_id: u32) -> anyhow::Result<()> {
+    pub async fn disconnect_user(client_id: u32) -> anyhow::Result<()> {
         if client_id < Database::ID_START {
             return Ok(());
         }
 
+        let db = &DATABASE;
         info!("Disconnecting User: '{}'", {
             db.users
                 .get(&client_id)
@@ -268,24 +257,25 @@ impl Server {
                     .with_value_10(left_id)
                     .build()?;
 
-                Server::broadcast_all(Arc::clone(&db), leave_packet).await?;
-                Server::broadcast_all(Arc::clone(&db), close_packet).await?;
+                Server::broadcast_all(leave_packet).await?;
+                Server::broadcast_all(close_packet).await?;
             }
         }
 
-        Server::leave_room(Arc::clone(&db), room_id, left_id)
+        Server::leave_room(room_id, left_id)
             .await
             .map_err(|e| anyhow!("Error leaving room for id '{}': {}", client_id, e))?;
 
         let packet = WormsPacket::create(PacketCode::DisconnectUser)
             .with_value_10(client_id)
             .build()?;
-        Server::broadcast_all(db.clone(), packet).await?;
+        Server::broadcast_all(packet).await?;
 
         Ok(())
     }
 
-    pub async fn leave_room(db: Arc<Database>, room_id: u32, left_id: u32) -> anyhow::Result<()> {
+    pub async fn leave_room(room_id: u32, left_id: u32) -> anyhow::Result<()> {
+        let db = &DATABASE;
         let room_exists = db.rooms.contains_key(&room_id);
 
         // Close an abandoned room.
@@ -318,14 +308,14 @@ impl Server {
                 .with_value_2(room_id)
                 .with_value_10(left_id)
                 .build()?;
-            Server::broadcast_all_except(Arc::clone(&db), packet, &left_id).await?;
+            Server::broadcast_all_except(packet, &left_id).await?;
         }
 
         if room_abandoned {
             let packet = WormsPacket::create(PacketCode::Close)
                 .with_value_10(room_id)
                 .build()?;
-            Server::broadcast_all_except(Arc::clone(&db), packet, &left_id).await?;
+            Server::broadcast_all_except(packet, &left_id).await?;
         }
 
         Ok(())

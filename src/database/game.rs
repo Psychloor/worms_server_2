@@ -4,7 +4,7 @@ use crate::net::session_access::SessionAccess;
 use crate::net::session_info::SessionInfo;
 use crate::net::session_type::SessionType;
 use std::net::IpAddr;
-use std::sync::{Arc, Weak};
+use std::sync::Arc;
 
 pub struct Game {
     pub id: u32,
@@ -12,7 +12,6 @@ pub struct Game {
     pub room_id: u32,
     pub ip: IpAddr,
     pub session: Arc<SessionInfo>,
-    db: Weak<Database>,
 }
 
 impl Game {
@@ -23,7 +22,6 @@ impl Game {
         room_id: u32,
         address: IpAddr,
         access: SessionAccess,
-        db: Weak<Database>,
     ) -> Self {
         Self {
             id,
@@ -31,13 +29,12 @@ impl Game {
             room_id,
             ip: address,
             session: SessionInfo::new_with_access(nation, SessionType::Game, access),
-            db,
         }
     }
 }
 
 impl Drop for Game {
     fn drop(&mut self) {
-        Database::recycle_id(self.db.clone(), self.id);
+        Database::recycle_id(self.id);
     }
 }

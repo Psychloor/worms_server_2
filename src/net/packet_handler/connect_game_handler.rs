@@ -1,4 +1,4 @@
-use crate::database::Database;
+use crate::database::DATABASE;
 use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
@@ -14,7 +14,6 @@ pub struct ConnectGameHandler;
 #[async_trait]
 impl PacketHandler for ConnectGameHandler {
     async fn handle_packet(
-        db: &Arc<Database>,
         tx: &Sender<Arc<Bytes>>,
         packet: &Arc<WormsPacket>,
         client_id: u32,
@@ -22,6 +21,7 @@ impl PacketHandler for ConnectGameHandler {
     ) -> anyhow::Result<()> {
         let game_id = packet.value_0.ok_or(anyhow!("no game id included!"))?;
 
+        let db = &DATABASE;
         if let Some(game) = db.games.get(&game_id) {
             let user_room_id = { db.users.get(&client_id).map(|u| u.room_id) };
 
