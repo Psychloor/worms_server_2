@@ -25,5 +25,8 @@ dotenv = "0.15.0"
 [profile.release]
 opt-level = 3
 debug = false
+debug-assertions = false
 lto = "fat"
 codegen-units = 1
+panic = "abort"
+strip = true
