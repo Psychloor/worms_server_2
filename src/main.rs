@@ -1,7 +1,5 @@
 use crate::args::Args;
-use anyhow::anyhow;
 use clap::Parser;
-use log::{error, info};
 use server::Server;
 use std::net::SocketAddr;
 use tokio_util::sync::CancellationToken;
@@ -13,25 +11,32 @@ pub(crate) mod server;
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> anyhow::Result<()> {
-    dotenv::dotenv().ok();
-    pretty_env_logger::init();
+	initialize_environment();
 
-    let args = Args::try_parse().map_err(|e| anyhow!("Error parsings args!").context(e))?;
+	let args = Args::try_parse()?;
+	let cancellation_token = CancellationToken::new();
 
-    let cancellation_token = CancellationToken::new();
-    let ct_clone = cancellation_token.clone();
-    tokio::spawn(async move {
-        tokio::signal::ctrl_c()
-            .await
-            .expect("Failed to listen for Ctrl + C!");
-        info!("Server shutting down");
-        ct_clone.cancel();
-    });
+	handle_ctrl_c_signal(cancellation_token.clone());
 
-    let server_address = SocketAddr::new(args.ip, args.port);
-    if let Err(e) = Server::start_server(server_address, cancellation_token).await {
-        error!("Error from server: {}", e);
-    }
+	let server_address = SocketAddr::new(args.ip, args.port);
+	if let Err(e) = Server::start_server(server_address, cancellation_token).await {
+		log::error!("Server encountered an error: {}", e);
+	}
 
-    Ok(())
+	Ok(())
+}
+
+fn initialize_environment() {
+	dotenv::dotenv().ok();
+	pretty_env_logger::init();
+}
+
+fn handle_ctrl_c_signal(cancellation_token: CancellationToken) {
+	tokio::spawn(async move {
+		tokio::signal::ctrl_c()
+			.await
+			.expect("Failed to listen for Ctrl+C signal!");
+		log::info!("Server shutting down due to Ctrl+C");
+		cancellation_token.cancel();
+	});
 }

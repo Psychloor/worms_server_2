@@ -48,35 +48,21 @@ pub async fn dispatch(
 ) -> anyhow::Result<()> {
     debug!("Dispatching handler for: {:?}", &code);
     match code {
-        PacketCode::ListRooms => {
-            ListRoomsHandler::handle_packet(tx, packet, client_id, address).await
-        }
+        PacketCode::ListRooms => ListRoomsHandler::handle_packet(tx, packet, client_id, address).await,
 
-        PacketCode::CreateRoom => {
-            CreateRoomHandler::handle_packet(tx, packet, client_id, address).await
-        }
+        PacketCode::CreateRoom => CreateRoomHandler::handle_packet(tx, packet, client_id, address).await,
 
-        PacketCode::ListUsers => {
-            ListUsersHandler::handle_packet(tx, packet, client_id, address).await
-        }
+        PacketCode::ListUsers => ListUsersHandler::handle_packet(tx, packet, client_id, address).await,
 
-        PacketCode::ListGames => {
-            ListGamesHandler::handle_packet(tx, packet, client_id, address).await
-        }
+        PacketCode::ListGames => ListGamesHandler::handle_packet(tx, packet, client_id, address).await,
 
         PacketCode::Join => JoinHandler::handle_packet(tx, packet, client_id, address).await,
 
-        PacketCode::CreateGame => {
-            CreateGameHandler::handle_packet(tx, packet, client_id, address).await
-        }
+        PacketCode::CreateGame => CreateGameHandler::handle_packet(tx, packet, client_id, address).await,
 
-        PacketCode::ChatRoom => {
-            ChatRoomHandler::handle_packet(tx, packet, client_id, address).await
-        }
+        PacketCode::ChatRoom => ChatRoomHandler::handle_packet(tx, packet, client_id, address).await,
 
-        PacketCode::ConnectGame => {
-            ConnectGameHandler::handle_packet(tx, packet, client_id, address).await
-        }
+        PacketCode::ConnectGame => ConnectGameHandler::handle_packet(tx, packet, client_id, address).await,
 
         PacketCode::Close => CloseHandler::handle_packet(tx, packet, client_id, address).await,
 
