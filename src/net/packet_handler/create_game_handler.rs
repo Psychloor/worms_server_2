@@ -59,6 +59,7 @@ impl PacketHandler for CreateGameHandler {
                     client_user.room_id,
                     address.ip(),
                     packet.session.as_ref().unwrap().access,
+                    Arc::downgrade(db),
                 );
 
                 {
