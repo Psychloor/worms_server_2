@@ -36,8 +36,8 @@ impl Server {
 
         let listener = listen_result?;
         let local_addr = listener.local_addr().expect("Expected local address");
-        info!("Server listening at {}", local_addr);
-        info!("Press Ctrl + C to shutdown!");
+        println!("Server listening at {}", local_addr);
+        println!("Press Ctrl + C to shutdown!");
 
         'server: loop {
             tokio::select! {
