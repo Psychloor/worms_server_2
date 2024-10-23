@@ -21,9 +21,8 @@ impl PacketHandler for ConnectGameHandler {
     ) -> anyhow::Result<()> {
         let game_id = packet.value_0.ok_or(anyhow!("no game id included!"))?;
 
-        let db = &DATABASE;
-        if let Some(game) = db.games.get(&game_id) {
-            let user_room_id = { db.users.get(&client_id).map(|u| u.room_id) };
+        if let Some(game) = DATABASE.games.get(&game_id) {
+            let user_room_id = { DATABASE.users.get(&client_id).map(|u| u.room_id) };
 
             if Some(game.room_id) == user_room_id {
                 let packet = WormsPacket::create(PacketCode::ConnectGameReply)

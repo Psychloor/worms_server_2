@@ -20,18 +20,17 @@ impl PacketHandler for JoinHandler {
         client_id: u32,
         _address: &SocketAddr,
     ) -> anyhow::Result<()> {
-        let db = &DATABASE;
-
         let join_id = packet.value_2.as_ref().map_or(0, |p| *p);
-        let user_room_id_original = db.users.get(&client_id).map_or(0, |u| u.room_id);
+        let user_room_id_original = DATABASE.users.get(&client_id).map_or(0, |u| u.room_id);
 
         if join_id == 0 || packet.value_10 != Some(client_id) {
             bail!("Invalid Data!");
         }
 
         // Check rooms
-        if db.rooms.get(&join_id).is_some() {
-            db.users
+        if DATABASE.rooms.get(&join_id).is_some() {
+            DATABASE
+                .users
                 .get_mut(&client_id)
                 .ok_or(anyhow!("User not found!"))?
                 .room_id = join_id;
@@ -48,7 +47,7 @@ impl PacketHandler for JoinHandler {
             tx.send(packet).await?;
 
             return Ok(());
-        } else if let Some(game) = db.games.get(&join_id) {
+        } else if let Some(game) = DATABASE.games.get(&join_id) {
             if game.room_id == user_room_id_original {
                 let packet = WormsPacket::create(PacketCode::Join)
                     .with_value_2(join_id)

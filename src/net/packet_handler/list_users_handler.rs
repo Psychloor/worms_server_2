@@ -19,8 +19,10 @@ impl PacketHandler for ListUsersHandler {
         client_id: u32,
         _address: &SocketAddr,
     ) -> anyhow::Result<()> {
-        let db = &DATABASE;
-        let user_room_id = db.users.get(&client_id).map_or(0, |user| user.room_id);
+        let user_room_id = DATABASE
+            .users
+            .get(&client_id)
+            .map_or(0, |user| user.room_id);
 
         if user_room_id < Database::ID_START
             || packet.value_2 != Some(user_room_id)
@@ -29,7 +31,7 @@ impl PacketHandler for ListUsersHandler {
             bail!("Invalid Data!");
         }
 
-        for user in db.users.iter().filter(|p| p.room_id == user_room_id) {
+        for user in DATABASE.users.iter().filter(|p| p.room_id == user_room_id) {
             let packet = WormsPacket::create(PacketCode::ListItem)
                 .with_value_1(*user.key())
                 .with_name(&user.name)

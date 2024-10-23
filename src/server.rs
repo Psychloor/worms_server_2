@@ -169,8 +169,7 @@ impl Server {
                 .with_session(&new_user.session)
                 .build()?;
 
-            let db = &DATABASE;
-            db.users.insert(new_id, new_user);
+            DATABASE.users.insert(new_id, new_user);
             Server::broadcast_all(packet).await?;
 
             let packet = WormsPacket::create(PacketCode::LoginReply)
@@ -190,8 +189,7 @@ impl Server {
     where
         F: Fn(&u32) -> bool + Send + Sync,
     {
-        let db = &DATABASE;
-        let futures = db.users.iter().filter_map(|entry| {
+        let futures = DATABASE.users.iter().filter_map(|entry| {
             if filter(entry.key()) {
                 let packet = Arc::clone(&packet);
                 Some(async move {
@@ -224,22 +222,22 @@ impl Server {
             return Ok(());
         }
 
-        let db = &DATABASE;
         info!("Disconnecting User: '{}'", {
-            db.users
+            DATABASE
+                .users
                 .get(&client_id)
                 .map_or(client_id.to_string(), |u| u.name.to_string())
         });
 
         let mut left_id = client_id;
-        let old_user = db.users.remove(&client_id);
+        let old_user = DATABASE.users.remove(&client_id);
 
         let (mut room_id, client_name) =
             old_user.map_or((0, "".to_string()), |(_, u)| (u.room_id, u.name.clone()));
 
         // check existing games
-        if let Some((_, lookup_gid)) = db.user_to_game.remove(&client_name) {
-            if let Some((game_id, game)) = db.games.remove(&lookup_gid) {
+        if let Some((_, lookup_gid)) = DATABASE.user_to_game.remove(&client_name) {
+            if let Some((game_id, game)) = DATABASE.games.remove(&lookup_gid) {
                 room_id = game.room_id;
                 left_id = game_id;
 
@@ -270,17 +268,16 @@ impl Server {
     }
 
     pub async fn leave_room(room_id: u32, left_id: u32) -> anyhow::Result<()> {
-        let db = &DATABASE;
-        let room_exists = db.rooms.contains_key(&room_id);
+        let room_exists = DATABASE.rooms.contains_key(&room_id);
 
         // Close an abandoned room.
         let room_abandoned = {
             if room_exists {
-                let any_users_connected = db
+                let any_users_connected = DATABASE
                     .users
                     .iter()
                     .any(|u| u.id != left_id && u.room_id == room_id);
-                let any_games_connected = db
+                let any_games_connected = DATABASE
                     .games
                     .iter()
                     .any(|g| g.id != left_id && g.room_id == room_id);
@@ -292,7 +289,7 @@ impl Server {
         };
 
         if room_abandoned {
-            if let Some(room) = db.rooms.remove(&room_id) {
+            if let Some(room) = DATABASE.rooms.remove(&room_id) {
                 debug!("Removed room '{}'", room.1.name);
             }
         }

@@ -31,8 +31,7 @@ impl PacketHandler for ChatRoomHandler {
             .value_3
             .ok_or(anyhow!("No target id included in chat packet!"))?;
 
-        let db = &DATABASE;
-        let client_user = db
+        let client_user = DATABASE
             .users
             .get(&client_id)
             .ok_or(anyhow!("User '{}' not found!", client_id))?;
@@ -48,7 +47,7 @@ impl PacketHandler for ChatRoomHandler {
                     .with_data(message)
                     .build()?;
 
-                for user in db
+                for user in DATABASE
                     .users
                     .iter()
                     .filter(|u| u.id != client_id && u.room_id == client_user.room_id)
@@ -70,7 +69,7 @@ impl PacketHandler for ChatRoomHandler {
         let prefix = format!("PRV:[ {} ]  ", &client_user.name);
         if message.starts_with(&prefix) {
             // Check if user can access the user.
-            if let Some(target_user) = db.users.get(&target_id) {
+            if let Some(target_user) = DATABASE.users.get(&target_id) {
                 if target_user.room_id == client_user.room_id {
                     let packet = WormsPacket::create(PacketCode::ChatRoom)
                         .with_value_0(client_id)

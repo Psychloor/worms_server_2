@@ -35,8 +35,7 @@ impl PacketHandler for CreateRoomHandler {
             .as_ref()
             .ok_or(anyhow!("no room name included in create room handler!"))?;
 
-        let db = &DATABASE;
-        if db
+        if DATABASE
             .rooms
             .iter()
             .any(|r| r.name.eq_ignore_ascii_case(room_name))
@@ -58,7 +57,7 @@ impl PacketHandler for CreateRoomHandler {
                 .with_name(room_name)
                 .with_session(&new_room.session)
                 .build()?;
-            db.rooms.insert(new_id, new_room);
+            DATABASE.rooms.insert(new_id, new_room);
 
             Server::broadcast_all_except(packet, &client_id).await?;
 

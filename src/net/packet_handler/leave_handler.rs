@@ -24,9 +24,7 @@ impl PacketHandler for LeaveHandler {
         if packet.value_2.is_none() || packet.value_10 != Some(client_id) {
             bail!("Invalid Data!");
         }
-
-        let db = &DATABASE;
-        let client_room_id = { db.users.get(&client_id).map_or(0, |u| u.room_id) };
+        let client_room_id = { DATABASE.users.get(&client_id).map_or(0, |u| u.room_id) };
 
         if packet.value_2 == Some(client_room_id) {
             let leave_result = Server::leave_room(client_room_id, client_id).await;
@@ -34,7 +32,7 @@ impl PacketHandler for LeaveHandler {
                 if leave_result.is_err() {
                     error!("Error leaving room: {:?}", leave_result.err().unwrap())
                 }
-                if let Some(mut user) = db.users.get_mut(&client_id) {
+                if let Some(mut user) = DATABASE.users.get_mut(&client_id) {
                     user.room_id = 0;
                 }
             }

@@ -23,9 +23,7 @@ impl PacketHandler for CreateGameHandler {
         client_id: u32,
         address: &SocketAddr,
     ) -> anyhow::Result<()> {
-        let db = &DATABASE;
-
-        let client_user = db
+        let client_user = DATABASE
             .users
             .get(&client_id)
             .ok_or(anyhow!("client user not found!"))?;
@@ -63,7 +61,9 @@ impl PacketHandler for CreateGameHandler {
                 );
 
                 {
-                    db.user_to_game.insert(client_user.name.clone(), new_id);
+                    DATABASE
+                        .user_to_game
+                        .insert(client_user.name.clone(), new_id);
                 }
 
                 let packet = WormsPacket::create(PacketCode::CreateGame)
@@ -75,7 +75,7 @@ impl PacketHandler for CreateGameHandler {
                     .with_session(&game.session)
                     .build()?;
 
-                db.games.insert(new_id, game);
+                DATABASE.games.insert(new_id, game);
                 Server::broadcast_all_except(packet, &client_id).await?;
 
                 let packet = WormsPacket::create(PacketCode::CreateGameReply)

@@ -50,12 +50,11 @@ impl Database {
     }
 
     pub async fn get_next_id() -> u32 {
-        let db = &DATABASE;
-        if let Some(id) = db.reusable_ids.lock().pop() {
+        if let Some(id) = DATABASE.reusable_ids.lock().pop() {
             return id;
         }
 
-        db.next_id.fetch_add(1, Ordering::Relaxed)
+        DATABASE.next_id.fetch_add(1, Ordering::Relaxed)
     }
 
     pub fn recycle_id(id: u32) {
@@ -63,13 +62,14 @@ impl Database {
             return;
         }
         if id >= Database::ID_START {
-            let db = &DATABASE;
-            db.reusable_ids.lock().push(id);
+            DATABASE.reusable_ids.lock().push(id);
         }
     }
 
     pub async fn check_user_exists(name: &str) -> bool {
-        let db = &DATABASE;
-        db.users.iter().any(|u| u.name.eq_ignore_ascii_case(name))
+        DATABASE
+            .users
+            .iter()
+            .any(|u| u.name.eq_ignore_ascii_case(name))
     }
 }
