@@ -3,6 +3,7 @@ use crate::net::session_info::SessionInfo;
 use anyhow::anyhow;
 use encoding_rs::WINDOWS_1252;
 use log::error;
+use std::char::REPLACEMENT_CHARACTER;
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 use tokio_util::bytes::{BufMut, Bytes, BytesMut};
@@ -122,7 +123,15 @@ impl WormsPacket {
             self.name = Some(value.to_string());
         } else {
             // Truncate the string to MAX_NAME_LENGTH
-            self.name = Some(value.chars().take(MAX_NAME_LENGTH).collect());
+            let truncated_bytes = &value.as_bytes()[..MAX_NAME_LENGTH];
+
+            self.name = Some(
+                String::from_utf8_lossy(truncated_bytes)
+                    .to_string()
+                    .chars()
+                    .filter(|c| *c != REPLACEMENT_CHARACTER)
+                    .collect(),
+            );
         }
         self.flags.set(PacketFlags::NAME, true);
         self
