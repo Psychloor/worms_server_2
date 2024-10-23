@@ -12,7 +12,7 @@ pub(crate) mod database;
 pub(crate) mod net;
 pub(crate) mod server;
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread")]
 async fn main() -> anyhow::Result<()> {
     pretty_env_logger::init();
 
