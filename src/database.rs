@@ -11,8 +11,10 @@ use parking_lot::Mutex;
 use rustc_hash::FxBuildHasher;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::LazyLock;
+use tokio_util::sync::CancellationToken;
 
 pub static DATABASE: LazyLock<Database> = LazyLock::new(Database::initialize);
+pub static SHUTDOWN_TOKEN: LazyLock<CancellationToken> = LazyLock::new(CancellationToken::new);
 
 pub struct Database {
     pub users: DashMap<u32, User, BuildNoHashHasher<u32>>,
@@ -57,6 +59,9 @@ impl Database {
     }
 
     pub fn recycle_id(id: u32) {
+        if SHUTDOWN_TOKEN.is_cancelled() {
+            return;
+        }
         if id >= Database::ID_START {
             let db = &DATABASE;
             db.reusable_ids.lock().push(id);

@@ -1,12 +1,12 @@
 use crate::database::user::User;
-use crate::database::{Database, DATABASE};
+use crate::database::{Database, DATABASE, SHUTDOWN_TOKEN};
 use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler;
 use crate::net::worms_codec::WormCodec;
 use crate::net::worms_packet::WormsPacket;
 use anyhow::{anyhow, bail};
-use futures_util::SinkExt;
 use futures_util::StreamExt;
+use futures_util::{FutureExt, SinkExt};
 use log::{debug, error, info};
 
 use futures_util::future::join_all;
@@ -24,17 +24,14 @@ impl Server {
     const AUTHORIZED_TTL: Duration = Duration::from_secs(10 * 60);
     const UNAUTHORIZED_TTL: Duration = Duration::from_secs(3);
 
-    pub async fn start_server(
-        address: impl ToSocketAddrs,
-        token: CancellationToken,
-    ) -> anyhow::Result<()> {
-        let listen_result = TcpListener::bind(address).await;
-        if let Err(e) = listen_result {
-            return Err(anyhow!("Error starting TCP Listener: {}", e));
-        }
+    pub async fn start_server(address: impl ToSocketAddrs) -> anyhow::Result<()> {
+        let cancellation_token = SHUTDOWN_TOKEN.clone();
 
-        let listener = listen_result?;
-        let local_addr = listener.local_addr().expect("Expected local address");
+        let listener = TcpListener::bind(address).await?;
+        let local_addr = listener
+            .local_addr()
+            .map_err(|e| anyhow::anyhow!("Unable to get local address").context(e))?;
+
         println!("Server listening at {}", local_addr);
         println!("Press Ctrl + C to shutdown!");
 
@@ -44,11 +41,10 @@ impl Server {
                     if let Ok((stream, _)) = listen_result {
                         stream.set_nodelay(true)?;
 
-                        let token_clone = token.clone();
-                        tokio::spawn(Server::handle_connection(stream, token_clone));
+                        tokio::spawn(Server::handle_connection(stream));
                     }
                 },
-                _ = token.cancelled() => {
+                _ = cancellation_token.cancelled().fuse() => {
                     break 'server;
                 }
             }
@@ -57,13 +53,13 @@ impl Server {
         Ok(())
     }
 
-    async fn handle_connection(
-        stream: TcpStream,
-        cancellation_token: CancellationToken,
-    ) -> anyhow::Result<()> {
+    async fn handle_connection(stream: TcpStream) -> anyhow::Result<()> {
         let mut user_id: u32 = 0;
         let mut timeout_duration = Server::UNAUTHORIZED_TTL;
+        let cancellation_token = SHUTDOWN_TOKEN.clone();
+
         let sender_addr = stream.peer_addr()?;
+
         let (tx, mut rx) = tokio::sync::mpsc::channel::<Arc<Bytes>>(100);
         let framed = Framed::new(stream, WormCodec);
         let (mut sink, mut stream) = framed.split();
@@ -133,7 +129,7 @@ impl Server {
                         break 'client;
                     }
                 },
-                _ = cancellation_token.cancelled() => {
+                _ = cancellation_token.cancelled().fuse() => {
                     return Ok(());
                 }
             }

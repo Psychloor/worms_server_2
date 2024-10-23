@@ -1,8 +1,8 @@
 use crate::args::Args;
+use crate::database::SHUTDOWN_TOKEN;
 use clap::Parser;
 use server::Server;
 use std::net::SocketAddr;
-use tokio_util::sync::CancellationToken;
 
 mod args;
 pub(crate) mod database;
@@ -14,12 +14,11 @@ async fn main() -> anyhow::Result<()> {
     initialize_environment();
 
     let args = Args::try_parse()?;
-    let cancellation_token = CancellationToken::new();
 
-    handle_ctrl_c_signal(cancellation_token.clone());
+    handle_ctrl_c_signal();
 
     let server_address = SocketAddr::new(args.ip, args.port);
-    if let Err(e) = Server::start_server(server_address, cancellation_token).await {
+    if let Err(e) = Server::start_server(server_address).await {
         log::error!("Server encountered an error: {}", e);
     }
 
@@ -31,7 +30,9 @@ fn initialize_environment() {
     pretty_env_logger::init();
 }
 
-fn handle_ctrl_c_signal(cancellation_token: CancellationToken) {
+fn handle_ctrl_c_signal() {
+    let cancellation_token = SHUTDOWN_TOKEN.clone();
+
     tokio::spawn(async move {
         tokio::signal::ctrl_c()
             .await
