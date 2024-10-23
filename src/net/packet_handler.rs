@@ -9,18 +9,17 @@ pub(crate) mod list_games_handler;
 pub(crate) mod list_rooms_handler;
 pub(crate) mod list_users_handler;
 
-use crate::net::packet_code::PacketCode;
-use crate::net::packet_handler::chat_room_handler::ChatRoomHandler;
-use crate::net::packet_handler::close_handler::CloseHandler;
-use crate::net::packet_handler::connect_game_handler::ConnectGameHandler;
-use crate::net::packet_handler::create_game_handler::CreateGameHandler;
-use crate::net::packet_handler::create_room_handler::CreateRoomHandler;
-use crate::net::packet_handler::join_handler::JoinHandler;
-use crate::net::packet_handler::leave_handler::LeaveHandler;
-use crate::net::packet_handler::list_games_handler::ListGamesHandler;
-use crate::net::packet_handler::list_rooms_handler::ListRoomsHandler;
-use crate::net::packet_handler::list_users_handler::ListUsersHandler;
-use crate::net::worms_packet::WormsPacket;
+use crate::net::{
+    packet_code::PacketCode,
+    packet_handler::{
+        chat_room_handler::ChatRoomHandler, close_handler::CloseHandler,
+        connect_game_handler::ConnectGameHandler, create_game_handler::CreateGameHandler,
+        create_room_handler::CreateRoomHandler, join_handler::JoinHandler,
+        leave_handler::LeaveHandler, list_games_handler::ListGamesHandler,
+        list_rooms_handler::ListRoomsHandler, list_users_handler::ListUsersHandler,
+    },
+    worms_packet::WormsPacket,
+};
 use anyhow::anyhow;
 use async_trait::async_trait;
 use log::{debug, error};
