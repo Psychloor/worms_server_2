@@ -13,35 +13,35 @@ pub struct ListGamesHandler;
 
 #[async_trait]
 impl PacketHandler for ListGamesHandler {
-	async fn handle_packet(
-		tx: &Sender<Arc<Bytes>>,
-		packet: &Arc<WormsPacket>,
-		client_id: u32,
-		_address: &SocketAddr,
-	) -> anyhow::Result<()> {
-		let db = &DATABASE;
-		let user_room_id = db.users.get(&client_id).map_or(0, |user| user.room_id);
+    async fn handle_packet(
+        tx: &Sender<Arc<Bytes>>,
+        packet: &Arc<WormsPacket>,
+        client_id: u32,
+        _address: &SocketAddr,
+    ) -> anyhow::Result<()> {
+        let db = &DATABASE;
+        let user_room_id = db.users.get(&client_id).map_or(0, |user| user.room_id);
 
-		if user_room_id < Database::ID_START
-			|| packet.value_2 != Some(user_room_id)
-			|| packet.value_4 != Some(0)
-		{
-			bail!("Invalid Data!");
-		}
+        if user_room_id < Database::ID_START
+            || packet.value_2 != Some(user_room_id)
+            || packet.value_4 != Some(0)
+        {
+            bail!("Invalid Data!");
+        }
 
-		for game in db.games.iter().filter(|g| g.room_id == user_room_id) {
-			let packet = WormsPacket::create(PacketCode::ListItem)
-				.with_value_1(*game.key())
-				.with_data(&game.ip.to_string())
-				.with_name(&game.name)
-				.with_session(&game.session)
-				.build()?;
-			tx.send(packet).await?;
-		}
+        for game in db.games.iter().filter(|g| g.room_id == user_room_id) {
+            let packet = WormsPacket::create(PacketCode::ListItem)
+                .with_value_1(*game.key())
+                .with_data(&game.ip.to_string())
+                .with_name(&game.name)
+                .with_session(&game.session)
+                .build()?;
+            tx.send(packet).await?;
+        }
 
-		let packet = WormsPacket::create(PacketCode::ListEnd).build()?;
-		tx.send(packet).await?;
+        let packet = WormsPacket::create(PacketCode::ListEnd).build()?;
+        tx.send(packet).await?;
 
-		Ok(())
-	}
+        Ok(())
+    }
 }
