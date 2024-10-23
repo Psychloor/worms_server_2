@@ -104,14 +104,19 @@ impl Decoder for WormCodec {
                     return Ok(None);
                 }
 
-                let data_bytes = src.split_to(length); // This avoids copying data
-                let (decoded, _, had_error) = WINDOWS_1252.decode(&data_bytes);
+                let data_bytes = src.split_to(length);
+                let filtered_bytes: Vec<u8> = data_bytes
+                    .iter()
+                    .cloned()
+                    .filter(|&byte| byte != b'\0')
+                    .collect();
+                let (decoded, _, had_error) = WINDOWS_1252.decode(&filtered_bytes);
                 if had_error {
                     error!("Packet Data: Windows-1252 decode error");
                     bail!("Windows-1252 decode error");
                 }
 
-                packet.data = Some(decoded.replace('\0', ""));
+                packet.data = Some(decoded.to_string());
             }
         }
 
@@ -140,7 +145,7 @@ impl Decoder for WormCodec {
                 bail!("Windows-1252 decode error");
             }
 
-            packet.name = Some(decoded.replace('\0', ""));
+            packet.name = Some(decoded.to_string());
         }
 
         if packet.flags.contains(PacketFlags::SESSION) {
