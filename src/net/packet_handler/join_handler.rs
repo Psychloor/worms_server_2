@@ -3,7 +3,7 @@ use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
 use crate::server::Server;
-use eyre::{bail, eyre, Result};
+use eyre::{bail, OptionExt, Result};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
@@ -26,11 +26,11 @@ impl PacketHandler for JoinHandler {
         }
 
         // Check rooms
-        if DATABASE.rooms.get(&join_id).is_some() {
+        if DATABASE.rooms.contains_key(&join_id) {
             DATABASE
                 .users
                 .get_mut(&client_id)
-                .ok_or(eyre!("User not found!"))?
+                .ok_or_eyre("User not found!")?
                 .room_id = join_id;
 
             let packet = WormsPacket::create(PacketCode::Join)
