@@ -107,17 +107,26 @@ impl Server {
                 },
                 // Receive up to 50 packets to send at a time
                 packet_count = rx.recv_many(&mut packets_to_send, 50) => {
-                    if packet_count == 0 { continue; }
+                    // if the result's 0, this channel has been closed
+                    if packet_count == 0 {
+                        break 'client;
+                    }
 
                     // Drain and send each packet in the batch
                     // Sadly since some packets depends on order we can't parallelize this
                     let packets = packets_to_send.drain(..packet_count);
                     for packet in packets {
-                        sink.feed(packet).await?
+                        if let Err(e) = sink.feed(packet).await {
+                            error!("Error sending packet: {}", e);
+                            break 'client;
+                        }
                     }
 
                     // Flush all packets since send did flush apparently
-                    sink.flush().await?;
+                    if let Err(e) = sink.flush().await {
+                        error!("Error flushing packets: {}", e);
+                        break 'client;
+                    }
                 },
                 _ = cancellation_token.cancelled().fuse() => {
                     return Ok(());
