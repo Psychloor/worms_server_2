@@ -37,7 +37,7 @@ fn handle_ctrl_c_signal() {
         tokio::signal::ctrl_c()
             .await
             .expect("Failed to listen for Ctrl+C signal!");
-        log::info!("Server shutting down due to Ctrl+C");
+        log::info!("Server shutting down");
         cancellation_token.cancel();
     });
 }
