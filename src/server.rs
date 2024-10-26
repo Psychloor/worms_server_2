@@ -187,7 +187,7 @@ impl Server {
         filter: F,
     ) -> Result<(), anyhow::Error>
     where
-        F: Fn(&u32) -> bool + Send + Sync,
+        F: Fn(&u32) -> bool,
     {
         let futures = DATABASE.users.iter().filter_map(|entry| {
             if filter(entry.key()) {
@@ -207,6 +207,7 @@ impl Server {
         });
 
         join_all(futures).await;
+
         Ok(())
     }
 
