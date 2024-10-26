@@ -12,7 +12,7 @@ pub(crate) mod server;
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> eyre::Result<()> {
-    initialize_environment();
+    initialize_environment()?;
 
     handle_ctrl_c_signal();
 
@@ -25,9 +25,12 @@ async fn main() -> eyre::Result<()> {
     Ok(())
 }
 
-fn initialize_environment() {
-    dotenv::dotenv().ok();
-    pretty_env_logger::init();
+fn initialize_environment() -> eyre::Result<()> {
+    dotenv::dotenv()?;
+    env_logger::init();
+    color_eyre::install()?;
+
+    Ok(())
 }
 
 fn handle_ctrl_c_signal() {
