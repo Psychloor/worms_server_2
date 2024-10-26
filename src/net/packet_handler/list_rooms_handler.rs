@@ -2,7 +2,7 @@ use crate::database::DATABASE;
 use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
-use anyhow::bail;
+use eyre::{bail, Result};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
@@ -16,7 +16,7 @@ impl PacketHandler for ListRoomsHandler {
         packet: Arc<WormsPacket>,
         _client_id: u32,
         _address: SocketAddr,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if packet.value_4 != Some(0) {
             bail!("Invalid Data!");
         }

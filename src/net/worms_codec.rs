@@ -1,7 +1,7 @@
 use crate::net::session_info::SessionInfo;
 use crate::net::worms_packet::{PacketFlags, WormsPacket};
-use anyhow::{anyhow, bail};
 use encoding_rs::WINDOWS_1252;
+use eyre::{bail, eyre, Result};
 use log::error;
 use std::sync::Arc;
 use tokio_util::bytes::{Buf, Bytes, BytesMut};
@@ -19,8 +19,8 @@ const MAX_DATA_LENGTH: usize = 0x200;
 const ZEROES_EXPECTED: usize = 35;
 
 impl Encoder<Arc<Bytes>> for WormCodec {
-    type Error = anyhow::Error;
-    fn encode(&mut self, item: Arc<Bytes>, dst: &mut BytesMut) -> anyhow::Result<(), Self::Error> {
+    type Error = eyre::Error;
+    fn encode(&mut self, item: Arc<Bytes>, dst: &mut BytesMut) -> Result<(), Self::Error> {
         dst.extend_from_slice(&item);
         Ok(())
     }
@@ -28,9 +28,9 @@ impl Encoder<Arc<Bytes>> for WormCodec {
 
 impl Decoder for WormCodec {
     type Item = Arc<WormsPacket>;
-    type Error = anyhow::Error;
+    type Error = eyre::Error;
 
-    fn decode(&mut self, src: &mut BytesMut) -> anyhow::Result<Option<Self::Item>, Self::Error> {
+    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         if src.len() < 8 {
             // tell the frame we need more
             return Ok(None);
@@ -96,7 +96,7 @@ impl Decoder for WormCodec {
             }
             let length = src.get_u32_le() as usize;
             if length > MAX_DATA_LENGTH {
-                return Err(anyhow!("Data Length too long! {}", length));
+                bail!("Data Length too long! {}", length);
             }
 
             if packet.flags.contains(PacketFlags::DATA) {
@@ -168,11 +168,11 @@ impl Decoder for WormCodec {
             session_info.session_type = src
                 .get_u8()
                 .try_into()
-                .map_err(|e| anyhow!("Session type invalid! {:?}", e))?;
+                .map_err(|e| eyre!("Session type invalid! {:?}", e))?;
             session_info.access = src
                 .get_u8()
                 .try_into()
-                .map_err(|e| anyhow!("Session access invalid! {:?}", e))?;
+                .map_err(|e| eyre!("Session access invalid! {:?}", e))?;
 
             if src.get_u8() != 1 {
                 bail!("Invalid Data! Expected 1");

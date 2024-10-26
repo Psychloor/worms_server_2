@@ -2,7 +2,7 @@ use crate::database::{Database, DATABASE};
 use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
-use anyhow::bail;
+use eyre::{bail, Result};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
@@ -16,7 +16,7 @@ impl PacketHandler for ListUsersHandler {
         packet: Arc<WormsPacket>,
         client_id: u32,
         _address: SocketAddr,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         let user_room_id = DATABASE
             .users
             .get(&client_id)

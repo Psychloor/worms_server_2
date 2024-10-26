@@ -1,6 +1,7 @@
 use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
+use eyre::Result;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
@@ -14,7 +15,7 @@ impl PacketHandler for CloseHandler {
         packet: Arc<WormsPacket>,
         _client_id: u32,
         _address: SocketAddr,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if packet.value_10.is_some() {
             let packet = WormsPacket::create(PacketCode::CloseReply)
                 .with_error_code(0)

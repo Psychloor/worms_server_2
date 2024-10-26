@@ -3,7 +3,7 @@ use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
 use crate::server::Server;
-use anyhow::bail;
+use eyre::{bail, Result};
 use log::error;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -18,7 +18,7 @@ impl PacketHandler for LeaveHandler {
         packet: Arc<WormsPacket>,
         client_id: u32,
         _address: SocketAddr,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if packet.value_2.is_none() || packet.value_10 != Some(client_id) {
             bail!("Invalid Data!");
         }

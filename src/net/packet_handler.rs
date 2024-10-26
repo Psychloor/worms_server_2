@@ -20,7 +20,7 @@ use crate::net::{
     },
     worms_packet::WormsPacket,
 };
-use anyhow::anyhow;
+use eyre::{eyre, Result};
 use log::{debug, error};
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -33,7 +33,7 @@ pub trait PacketHandler {
         packet: Arc<WormsPacket>,
         _client_id: u32,
         _address: SocketAddr,
-    ) -> anyhow::Result<()>;
+    ) -> Result<()>;
 }
 
 pub async fn dispatch(
@@ -42,7 +42,7 @@ pub async fn dispatch(
     packet: Arc<WormsPacket>,
     client_id: u32,
     address: SocketAddr,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     debug!("Dispatching handler for: {:?}", &code);
     match code {
         PacketCode::ListRooms => {
@@ -79,7 +79,7 @@ pub async fn dispatch(
 
         PacketCode::Leave => LeaveHandler::handle_packet(tx, packet, client_id, address).await,
 
-        _ => Err(anyhow!("Unknown packet dispatched! {:?}", code)),
+        _ => Err(eyre!("Unknown packet dispatched! {:?}", code)),
     }
     .map_err(|e| {
         error!("Error Dispatching Packet: {}", e);

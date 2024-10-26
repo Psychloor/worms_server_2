@@ -11,7 +11,7 @@ pub(crate) mod net;
 pub(crate) mod server;
 
 #[tokio::main(flavor = "multi_thread")]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> eyre::Result<()> {
     initialize_environment();
 
     handle_ctrl_c_signal();

@@ -1,7 +1,7 @@
 use crate::net::packet_code::PacketCode;
 use crate::net::session_info::SessionInfo;
-use anyhow::anyhow;
 use encoding_rs::WINDOWS_1252;
+use eyre::{bail, Result};
 use log::error;
 use std::char::REPLACEMENT_CHARACTER;
 use std::fmt::{Debug, Formatter};
@@ -143,7 +143,7 @@ impl WormsPacket {
         self
     }
 
-    pub fn build(self) -> anyhow::Result<Arc<Bytes>> {
+    pub fn build(self) -> Result<Arc<Bytes>> {
         let mut dst = BytesMut::new();
         dst.put_u32_le(self.header_code.into());
         dst.put_u32_le(self.flags.bits());
@@ -170,7 +170,7 @@ impl WormsPacket {
             let (encoded, _, had_error) = WINDOWS_1252.encode(value);
             if had_error {
                 error!("Packet Data: Windows-1252 encode error");
-                return Err(anyhow!("Windows-1252 encode error"));
+                bail!("Windows-1252 encode error");
             }
 
             dst.put_u32_le(u32::try_from(encoded.len() + 1)?);
@@ -186,7 +186,7 @@ impl WormsPacket {
 
             if had_error {
                 error!("Packet Name: Windows-1252 encode error");
-                return Err(anyhow!("Windows-1252 encode error"));
+                bail!("Windows-1252 encode error");
             }
 
             let length = encoded.len().min(MAX_NAME_LENGTH);

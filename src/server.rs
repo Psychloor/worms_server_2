@@ -4,7 +4,7 @@ use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler;
 use crate::net::worms_codec::WormCodec;
 use crate::net::worms_packet::WormsPacket;
-use anyhow::{anyhow, bail};
+use eyre::{bail, eyre, Result};
 use futures_util::StreamExt;
 use futures_util::{FutureExt, SinkExt};
 use log::{debug, error, info};
@@ -23,13 +23,13 @@ impl Server {
     const AUTHORIZED_TTL: Duration = Duration::from_secs(10 * 60);
     const UNAUTHORIZED_TTL: Duration = Duration::from_secs(3);
 
-    pub async fn start_server(address: impl ToSocketAddrs) -> anyhow::Result<()> {
+    pub async fn start_server(address: impl ToSocketAddrs) -> Result<()> {
         let cancellation_token = SHUTDOWN_TOKEN.clone();
 
         let listener = TcpListener::bind(address).await?;
         let local_addr = listener
             .local_addr()
-            .map_err(|e| anyhow::anyhow!("Unable to get local address").context(e))?;
+            .map_err(|e| eyre!("Unable to get local address: {}", e))?;
 
         println!("Server listening at {}", local_addr);
         println!("Press Ctrl + C to shutdown!");
@@ -52,7 +52,7 @@ impl Server {
         Ok(())
     }
 
-    async fn handle_connection(stream: TcpStream) -> anyhow::Result<()> {
+    async fn handle_connection(stream: TcpStream) -> Result<()> {
         let mut user_id: u32 = 0;
         let mut timeout_duration = Server::UNAUTHORIZED_TTL;
         let cancellation_token = SHUTDOWN_TOKEN.clone();
@@ -129,16 +129,13 @@ impl Server {
         Ok(())
     }
 
-    async fn login_client(
-        packet: &Arc<WormsPacket>,
-        tx: &Sender<Arc<Bytes>>,
-    ) -> anyhow::Result<u32> {
-        let name = packet.name.as_ref().ok_or(anyhow!("No name specified!"))?;
+    async fn login_client(packet: &Arc<WormsPacket>, tx: &Sender<Arc<Bytes>>) -> Result<u32> {
+        let name = packet.name.as_ref().ok_or(eyre!("No name specified!"))?;
         let session_nation = packet
             .session
             .as_ref()
             .map(|s| s.nation)
-            .ok_or(anyhow!("No nation specified!"))?;
+            .ok_or(eyre!("No nation specified!"))?;
 
         if Database::check_user_exists(name).await {
             let packet = WormsPacket::create(PacketCode::LoginReply)
@@ -173,10 +170,7 @@ impl Server {
         }
     }
 
-    async fn broadcast_all_with_filter<F>(
-        packet: Arc<Bytes>,
-        filter: F,
-    ) -> Result<(), anyhow::Error>
+    async fn broadcast_all_with_filter<F>(packet: Arc<Bytes>, filter: F) -> Result<(), eyre::Error>
     where
         F: Fn(&u32) -> bool,
     {
@@ -202,14 +196,14 @@ impl Server {
         Ok(())
     }
 
-    pub async fn broadcast_all(packet: Arc<Bytes>) -> anyhow::Result<()> {
+    pub async fn broadcast_all(packet: Arc<Bytes>) -> Result<()> {
         Self::broadcast_all_with_filter(packet, |_| true).await
     }
-    pub async fn broadcast_all_except(packet: Arc<Bytes>, ignored: &u32) -> anyhow::Result<()> {
+    pub async fn broadcast_all_except(packet: Arc<Bytes>, ignored: &u32) -> Result<()> {
         Self::broadcast_all_with_filter(packet, |user_id| *user_id != *ignored).await
     }
 
-    pub async fn disconnect_user(client_id: u32) -> anyhow::Result<()> {
+    pub async fn disconnect_user(client_id: u32) -> Result<()> {
         if client_id < Database::ID_START {
             return Ok(());
         }
@@ -258,7 +252,7 @@ impl Server {
 
         Server::leave_room(room_id, left_id)
             .await
-            .map_err(|e| anyhow!("Error leaving room for id '{}': {}", client_id, e))?;
+            .map_err(|e| eyre!("Error leaving room for id '{}': {}", client_id, e))?;
 
         let packet = WormsPacket::create(PacketCode::DisconnectUser)
             .with_value_10(client_id)
@@ -268,7 +262,7 @@ impl Server {
         Ok(())
     }
 
-    pub async fn leave_room(room_id: u32, left_id: u32) -> anyhow::Result<()> {
+    pub async fn leave_room(room_id: u32, left_id: u32) -> Result<()> {
         let room_exists = DATABASE.rooms.contains_key(&room_id);
 
         // Close an abandoned room.

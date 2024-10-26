@@ -25,7 +25,7 @@ impl User {
         }
     }
 
-    pub async fn send_packet(&self, packet: Arc<Bytes>) -> anyhow::Result<()> {
+    pub async fn send_packet(&self, packet: Arc<Bytes>) -> eyre::Result<()> {
         if let Some(sender) = self.sender.upgrade() {
             sender.send(packet).await?
         }

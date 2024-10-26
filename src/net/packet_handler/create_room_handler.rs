@@ -4,7 +4,7 @@ use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
 use crate::server::Server;
-use anyhow::{anyhow, bail};
+use eyre::{bail, eyre, Result};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
@@ -18,7 +18,7 @@ impl PacketHandler for CreateRoomHandler {
         packet: Arc<WormsPacket>,
         client_id: u32,
         _address: SocketAddr,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if packet.value_1 != Some(0)
             || packet.value_4 != Some(0)
             || packet.data.is_none()
@@ -31,7 +31,7 @@ impl PacketHandler for CreateRoomHandler {
         let room_name = packet
             .name
             .as_ref()
-            .ok_or(anyhow!("no room name included in create room handler!"))?;
+            .ok_or(eyre!("no room name included in create room handler!"))?;
 
         if DATABASE
             .rooms

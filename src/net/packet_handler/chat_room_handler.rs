@@ -2,7 +2,7 @@ use crate::database::DATABASE;
 use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
-use anyhow::{anyhow, bail};
+use eyre::{bail, ContextCompat, Result};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
@@ -16,7 +16,7 @@ impl PacketHandler for ChatRoomHandler {
         packet: Arc<WormsPacket>,
         client_id: u32,
         _address: SocketAddr,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if packet.value_0 != Some(client_id) {
             bail!("From user invalid!");
         }
@@ -24,15 +24,15 @@ impl PacketHandler for ChatRoomHandler {
         let message = packet
             .data
             .as_ref()
-            .ok_or(anyhow!("No message included in chat packet!"))?;
+            .wrap_err("No message included in chat packet!")?;
         let target_id = packet
             .value_3
-            .ok_or(anyhow!("No target id included in chat packet!"))?;
+            .wrap_err("No target id included in chat packet!")?;
 
         let client_user = DATABASE
             .users
             .get(&client_id)
-            .ok_or(anyhow!("User '{}' not found!", client_id))?;
+            .wrap_err(format!("User '{}' not found!", client_id))?;
 
         // Regular chat
         let prefix = format!("GRP:[ {} ]  ", &client_user.name);

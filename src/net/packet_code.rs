@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Error};
+use eyre::{eyre, Error, Result};
 
 /// Represents the description of the packet contents, as seen from client-side (thus a "reply" comes from the
 /// server).
@@ -63,7 +63,7 @@ impl From<PacketCode> for u32 {
 impl TryFrom<u32> for PacketCode {
     type Error = Error;
 
-    fn try_from(value: u32) -> anyhow::Result<Self, Self::Error> {
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
         match value {
             200 => Ok(PacketCode::ListRooms),
             350 => Ok(PacketCode::ListItem),
@@ -87,7 +87,7 @@ impl TryFrom<u32> for PacketCode {
             1301 => Ok(PacketCode::ChatRoomReply),
             1326 => Ok(PacketCode::ConnectGame),
             1327 => Ok(PacketCode::ConnectGameReply),
-            _ => Err(anyhow!("Invalid Packet Code {}", value)),
+            _ => Err(eyre!("Invalid Packet Code {}", value)),
         }
     }
 }

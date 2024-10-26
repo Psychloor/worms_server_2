@@ -4,7 +4,7 @@ use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
 use crate::server::Server;
-use anyhow::{anyhow, bail};
+use eyre::{bail, eyre, ContextCompat, Result};
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
@@ -20,11 +20,11 @@ impl PacketHandler for CreateGameHandler {
         packet: Arc<WormsPacket>,
         client_id: u32,
         address: SocketAddr,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         let client_user = DATABASE
             .users
             .get(&client_id)
-            .ok_or(anyhow!("client user not found!"))?;
+            .wrap_err("client user not found!")?;
 
         if packet.value_1 != Some(0)
             || packet.value_2 != Some(client_user.room_id)
@@ -39,7 +39,7 @@ impl PacketHandler for CreateGameHandler {
         let ip_result = packet
             .data
             .as_ref()
-            .ok_or(anyhow!(
+            .ok_or(eyre!(
                 "No ip received in create game handler!, got {:?}",
                 packet.data
             ))?

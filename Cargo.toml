@@ -8,7 +8,7 @@ license = "MIT"
 
 [dependencies]
 # Error handling
-anyhow = "1.0.75"
+eyre = "0.6.12"
 
 # Async support and utilities
 tokio = { version = "1.34.0", features = ["full"] }
