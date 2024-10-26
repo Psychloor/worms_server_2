@@ -237,27 +237,31 @@ impl Server {
 
         // check games to see if we're the creator
         // and remove if that's the case
-        if let Some((game_id, game)) = DATABASE
+
+        // Find the game ID first without holding any locks
+        let game_id_to_remove = DATABASE
             .games
             .iter()
             .find(|g| g.name == client_name)
-            .map(|g| g.id) // map to extract id without fucking up the iteration for dashmap
-            .and_then(|gid| DATABASE.games.remove(&gid))
-        {
-            room_id = game.room_id;
-            left_id = game_id;
+            .map(|g| g.id);
 
-            debug!("Removing Game '{}'", game.name);
-            let leave_packet = WormsPacket::create(PacketCode::Leave)
-                .with_value_2(left_id)
-                .with_value_10(client_id)
-                .build()?;
-            let close_packet = WormsPacket::create(PacketCode::Close)
-                .with_value_10(left_id)
-                .build()?;
+        if let Some(game_id) = game_id_to_remove {
+            if let Some((game_id, game)) = DATABASE.games.remove(&game_id) {
+                room_id = game.room_id;
+                left_id = game_id;
 
-            Server::broadcast_all(leave_packet).await?;
-            Server::broadcast_all(close_packet).await?;
+                debug!("Removing Game '{}'", game.name);
+                let leave_packet = WormsPacket::create(PacketCode::Leave)
+                    .with_value_2(left_id)
+                    .with_value_10(client_id)
+                    .build()?;
+                let close_packet = WormsPacket::create(PacketCode::Close)
+                    .with_value_10(left_id)
+                    .build()?;
+
+                Server::broadcast_all(leave_packet).await?;
+                Server::broadcast_all(close_packet).await?;
+            }
         }
 
         Server::leave_room(room_id, left_id)
