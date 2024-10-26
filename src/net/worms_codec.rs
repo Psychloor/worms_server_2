@@ -181,9 +181,6 @@ impl Decoder for WormCodec {
                 bail!("Invalid Data! Expected 0");
             }
 
-            if src.remaining() < ZEROES_EXPECTED {
-                return Ok(None);
-            }
             let bytes = src.split_to(ZEROES_EXPECTED);
             if bytes.iter().any(|&byte| byte != 0) {
                 bail!("Invalid Data Buffer! Non-zero byte found in expected zeroes");
