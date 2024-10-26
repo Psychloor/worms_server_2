@@ -230,9 +230,6 @@ impl Server {
         let (mut room_id, client_name) =
             old_user.map_or((0, "".to_string()), |(_, u)| (u.room_id, u.name.clone()));
 
-        // check games to see if we're the creator
-        // and remove if that's the case
-
         // Find the game ID first without holding any locks
         let game_id_to_remove = DATABASE
             .games
