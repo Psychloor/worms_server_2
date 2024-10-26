@@ -1,4 +1,4 @@
-use eyre::{eyre, Error, Result};
+use eyre::{bail, Error, Result};
 
 /// Represents the description of the packet contents, as seen from client-side (thus a "reply" comes from the
 /// server).
@@ -87,7 +87,7 @@ impl TryFrom<u32> for PacketCode {
             1301 => Ok(PacketCode::ChatRoomReply),
             1326 => Ok(PacketCode::ConnectGame),
             1327 => Ok(PacketCode::ConnectGameReply),
-            _ => Err(eyre!("Invalid Packet Code {}", value)),
+            _ => bail!("Invalid Packet Code {}", value),
         }
     }
 }

@@ -2,7 +2,7 @@ use crate::database::DATABASE;
 use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
-use eyre::{ContextCompat, Result};
+use eyre::{OptionExt, Result};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
@@ -17,7 +17,7 @@ impl PacketHandler for ConnectGameHandler {
         client_id: u32,
         _address: SocketAddr,
     ) -> Result<()> {
-        let game_id = packet.value_0.wrap_err("no game id included!")?;
+        let game_id = packet.value_0.ok_or_eyre("no game id included!")?;
 
         if let Some(game) = DATABASE.games.get(&game_id) {
             let user_room_id = { DATABASE.users.get(&client_id).map(|u| u.room_id) };

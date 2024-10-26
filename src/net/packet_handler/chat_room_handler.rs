@@ -2,7 +2,7 @@ use crate::database::DATABASE;
 use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
-use eyre::{bail, ContextCompat, Result};
+use eyre::{bail, OptionExt, Result};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
@@ -24,15 +24,15 @@ impl PacketHandler for ChatRoomHandler {
         let message = packet
             .data
             .as_ref()
-            .wrap_err("No message included in chat packet!")?;
+            .ok_or_eyre("No message included in chat packet!")?;
         let target_id = packet
             .value_3
-            .wrap_err("No target id included in chat packet!")?;
+            .ok_or_eyre("No target id included in chat packet!")?;
 
         let client_user = DATABASE
             .users
             .get(&client_id)
-            .wrap_err(format!("User '{}' not found!", client_id))?;
+            .ok_or_eyre(format!("User '{}' not found!", client_id))?;
 
         // Regular chat
         let prefix = format!("GRP:[ {} ]  ", &client_user.name);

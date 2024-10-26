@@ -20,7 +20,7 @@ use crate::net::{
     },
     worms_packet::WormsPacket,
 };
-use eyre::{eyre, Result};
+use eyre::{bail, eyre, Result};
 use log::{debug, error};
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -79,10 +79,6 @@ pub async fn dispatch(
 
         PacketCode::Leave => LeaveHandler::handle_packet(tx, packet, client_id, address).await,
 
-        _ => Err(eyre!("Unknown packet dispatched! {:?}", code)),
+        _ => bail!("Unknown packet dispatched! {:?}", code),
     }
-    .map_err(|e| {
-        error!("Error Dispatching Packet: {}", e);
-        e
-    })
 }

@@ -1,3 +1,5 @@
+use eyre::{bail, Error};
+
 #[derive(Debug, Default, PartialOrd, PartialEq, Copy, Clone)]
 #[repr(u8)]
 pub enum SessionType {
@@ -18,14 +20,14 @@ impl From<SessionType> for u8 {
 }
 
 impl TryFrom<u8> for SessionType {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             1 => Ok(SessionType::Room),
             4 => Ok(SessionType::Game),
             5 => Ok(SessionType::User),
-            _ => Err(()),
+            _ => bail!("invalid value for SessionType: {}", value),
         }
     }
 }
