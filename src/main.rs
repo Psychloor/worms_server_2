@@ -13,10 +13,9 @@ pub(crate) mod server;
 async fn main() -> anyhow::Result<()> {
     initialize_environment();
 
-    let args = Args::try_parse()?;
-
     handle_ctrl_c_signal();
 
+    let args = Args::try_parse()?;
     let server_address = SocketAddr::new(args.ip, args.port);
     if let Err(e) = Server::start_server(server_address).await {
         log::error!("Server encountered an error: {}", e);
