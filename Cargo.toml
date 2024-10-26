@@ -33,7 +33,6 @@ clap = { version = "4.5.20", features = ["default", "derive"] }
 encoding_rs = "0.8.33"
 
 # Data structures and algorithm utilities
-rustc-hash = "2.0.0"
 nohash-hasher = "0.2.0"
 bitflags = "2.6.0"
 

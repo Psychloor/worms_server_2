@@ -8,7 +8,6 @@ use crate::database::user::User;
 use dashmap::DashMap;
 use nohash_hasher::BuildNoHashHasher;
 use parking_lot::Mutex;
-use rustc_hash::FxBuildHasher;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::LazyLock;
 use tokio_util::sync::CancellationToken;
@@ -20,7 +19,6 @@ pub struct Database {
     pub users: DashMap<u32, User, BuildNoHashHasher<u32>>,
     pub rooms: DashMap<u32, Room, BuildNoHashHasher<u32>>,
     pub games: DashMap<u32, Game, BuildNoHashHasher<u32>>,
-    pub user_to_game: DashMap<String, u32, FxBuildHasher>,
     next_id: AtomicU32,
     reusable_ids: Mutex<Vec<u32>>,
 }
@@ -43,7 +41,6 @@ impl Database {
                 Self::STARTING_CAPACITY,
                 BuildNoHashHasher::default(),
             ),
-            user_to_game: DashMap::with_capacity_and_hasher(Self::STARTING_CAPACITY, FxBuildHasher),
             next_id: AtomicU32::new(Database::ID_START),
             reusable_ids: Mutex::new(Vec::new()),
         }

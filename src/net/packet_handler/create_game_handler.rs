@@ -60,12 +60,6 @@ impl PacketHandler for CreateGameHandler {
                     packet.session.as_ref().unwrap().access,
                 );
 
-                {
-                    DATABASE
-                        .user_to_game
-                        .insert(client_user.name.clone(), new_id);
-                }
-
                 let packet = WormsPacket::create(PacketCode::CreateGame)
                     .with_value_1(new_id)
                     .with_value_2(game.room_id)
