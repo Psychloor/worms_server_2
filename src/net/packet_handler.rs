@@ -20,8 +20,8 @@ use crate::net::{
     },
     worms_packet::WormsPacket,
 };
-use eyre::{bail, eyre, Result};
-use log::{debug, error};
+use eyre::{bail, Result};
+use log::debug;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;

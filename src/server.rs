@@ -4,7 +4,7 @@ use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler;
 use crate::net::worms_codec::WormCodec;
 use crate::net::worms_packet::WormsPacket;
-use eyre::{bail, eyre, Result};
+use eyre::{bail, eyre, Result, WrapErr};
 use futures_util::StreamExt;
 use futures_util::{FutureExt, SinkExt};
 use log::{debug, error, info};
@@ -258,7 +258,7 @@ impl Server {
 
         Server::leave_room(room_id, left_id)
             .await
-            .map_err(|e| eyre!("Error leaving room for id '{}': {}", client_id, e))?;
+            .wrap_err_with(|| format!("Failed to leave room {}", room_id))?;
 
         let packet = WormsPacket::create(PacketCode::DisconnectUser)
             .with_value_10(client_id)
