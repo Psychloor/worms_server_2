@@ -1,6 +1,3 @@
-# worms_server_2
+# Worms 2 Lobby/Game Server
 
-second version of a worms 2 lobby server
-
-made to learn how networking in rust works and is also a kinda port
-of: [this source](https://gitlab.com/Syroot/Worms/-/tree/master/src/tool/Syroot.Worms.Worms2.GameServer?ref_type=heads)
+Rust version pretty much of the [C# Version](https://gitlab.com/Syroot/Worms/-/tree/master/src/tool/Syroot.Worms.Worms2.GameServer?ref_type=heads)
