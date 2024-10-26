@@ -4,7 +4,6 @@ use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
 use crate::server::Server;
 use anyhow::{anyhow, bail};
-use async_trait::async_trait;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
@@ -12,13 +11,12 @@ use tokio_util::bytes::Bytes;
 
 pub struct JoinHandler;
 
-#[async_trait]
 impl PacketHandler for JoinHandler {
     async fn handle_packet(
-        tx: &Sender<Arc<Bytes>>,
-        packet: &Arc<WormsPacket>,
+        tx: Sender<Arc<Bytes>>,
+        packet: Arc<WormsPacket>,
         client_id: u32,
-        _address: &SocketAddr,
+        _address: SocketAddr,
     ) -> anyhow::Result<()> {
         let join_id = packet.value_2.as_ref().map_or(0, |p| *p);
         let user_room_id_original = DATABASE.users.get(&client_id).map_or(0, |u| u.room_id);

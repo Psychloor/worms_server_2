@@ -84,7 +84,7 @@ impl Server {
                             },
                             _ if user_id == 0 => { continue; },
                             packet_code => {
-                                if let Err(e) = packet_handler::dispatch(packet_code, &tx, packet, user_id, &sender_addr).await {
+                                if let Err(e) = packet_handler::dispatch(packet_code, tx.clone(), packet.clone(), user_id, sender_addr).await {
                                     error!("Error Handling Packet: {}", e);
                                     break 'client;
                                 }

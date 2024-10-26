@@ -4,7 +4,6 @@ use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
 use crate::server::Server;
 use anyhow::bail;
-use async_trait::async_trait;
 use log::error;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -13,13 +12,12 @@ use tokio_util::bytes::Bytes;
 
 pub struct LeaveHandler;
 
-#[async_trait]
 impl PacketHandler for LeaveHandler {
     async fn handle_packet(
-        tx: &Sender<Arc<Bytes>>,
-        packet: &Arc<WormsPacket>,
+        tx: Sender<Arc<Bytes>>,
+        packet: Arc<WormsPacket>,
         client_id: u32,
-        _address: &SocketAddr,
+        _address: SocketAddr,
     ) -> anyhow::Result<()> {
         if packet.value_2.is_none() || packet.value_10 != Some(client_id) {
             bail!("Invalid Data!");

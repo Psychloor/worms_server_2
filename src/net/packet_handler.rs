@@ -21,29 +21,27 @@ use crate::net::{
     worms_packet::WormsPacket,
 };
 use anyhow::anyhow;
-use async_trait::async_trait;
 use log::{debug, error};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
 use tokio_util::bytes::Bytes;
 
-#[async_trait]
 pub trait PacketHandler {
     async fn handle_packet(
-        tx: &Sender<Arc<Bytes>>,
-        packet: &Arc<WormsPacket>,
+        tx: Sender<Arc<Bytes>>,
+        packet: Arc<WormsPacket>,
         _client_id: u32,
-        _address: &SocketAddr,
+        _address: SocketAddr,
     ) -> anyhow::Result<()>;
 }
 
 pub async fn dispatch(
     code: PacketCode,
-    tx: &Sender<Arc<Bytes>>,
-    packet: &Arc<WormsPacket>,
+    tx: Sender<Arc<Bytes>>,
+    packet: Arc<WormsPacket>,
     client_id: u32,
-    address: &SocketAddr,
+    address: SocketAddr,
 ) -> anyhow::Result<()> {
     debug!("Dispatching handler for: {:?}", &code);
     match code {

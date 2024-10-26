@@ -3,7 +3,6 @@ use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
 use anyhow::bail;
-use async_trait::async_trait;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
@@ -11,13 +10,12 @@ use tokio_util::bytes::Bytes;
 
 pub struct ListGamesHandler;
 
-#[async_trait]
 impl PacketHandler for ListGamesHandler {
     async fn handle_packet(
-        tx: &Sender<Arc<Bytes>>,
-        packet: &Arc<WormsPacket>,
+        tx: Sender<Arc<Bytes>>,
+        packet: Arc<WormsPacket>,
         client_id: u32,
-        _address: &SocketAddr,
+        _address: SocketAddr,
     ) -> anyhow::Result<()> {
         let user_room_id = DATABASE
             .users

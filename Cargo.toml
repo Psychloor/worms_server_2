@@ -17,7 +17,6 @@ futures = "0.3.31"
 futures-util = { version = "0.3.31", features = ["tokio-io", "async-await", "sink", "default"] }
 
 # Concurrency and synchronization
-async-trait = "0.1.74"
 parking_lot = { version = "0.12.3", features = ["default"] }
 dashmap = "6.1.0"
 

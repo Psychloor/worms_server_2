@@ -5,7 +5,6 @@ use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
 use crate::server::Server;
 use anyhow::{anyhow, bail};
-use async_trait::async_trait;
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
@@ -15,13 +14,12 @@ pub struct CreateGameHandler;
 
 const INVALID_MESSAGE: &str = "GRP:Cannot host your game. Please use FrontendKitWS with fkNetcode. More information at worms2d.info/fkNetcode";
 
-#[async_trait]
 impl PacketHandler for CreateGameHandler {
     async fn handle_packet(
-        tx: &Sender<Arc<Bytes>>,
-        packet: &Arc<WormsPacket>,
+        tx: Sender<Arc<Bytes>>,
+        packet: Arc<WormsPacket>,
         client_id: u32,
-        address: &SocketAddr,
+        address: SocketAddr,
     ) -> anyhow::Result<()> {
         let client_user = DATABASE
             .users

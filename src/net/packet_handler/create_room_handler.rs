@@ -5,7 +5,6 @@ use crate::net::packet_handler::PacketHandler;
 use crate::net::worms_packet::WormsPacket;
 use crate::server::Server;
 use anyhow::{anyhow, bail};
-use async_trait::async_trait;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
@@ -13,13 +12,12 @@ use tokio_util::bytes::Bytes;
 
 pub struct CreateRoomHandler;
 
-#[async_trait]
 impl PacketHandler for CreateRoomHandler {
     async fn handle_packet(
-        tx: &Sender<Arc<Bytes>>,
-        packet: &Arc<WormsPacket>,
+        tx: Sender<Arc<Bytes>>,
+        packet: Arc<WormsPacket>,
         client_id: u32,
-        _address: &SocketAddr,
+        _address: SocketAddr,
     ) -> anyhow::Result<()> {
         if packet.value_1 != Some(0)
             || packet.value_4 != Some(0)
