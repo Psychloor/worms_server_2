@@ -1,6 +1,7 @@
 use crate::args::Args;
 use crate::database::SHUTDOWN_TOKEN;
 use clap::Parser;
+use log::{error, info};
 use server::Server;
 use std::net::SocketAddr;
 
@@ -33,10 +34,12 @@ fn handle_ctrl_c_signal() {
     let cancellation_token = SHUTDOWN_TOKEN.clone();
 
     tokio::spawn(async move {
-        tokio::signal::ctrl_c()
-            .await
-            .expect("Failed to listen for Ctrl+C signal!");
-        log::info!("Server shutting down");
+        if let Err(e) = tokio::signal::ctrl_c().await {
+            error!("Ctrl-C signal handler encountered an error: {}", e);
+            cancellation_token.cancel();
+            return;
+        }
+        info!("Server shutting down");
         cancellation_token.cancel();
     });
 }
