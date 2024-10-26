@@ -235,24 +235,29 @@ impl Server {
         let (mut room_id, client_name) =
             old_user.map_or((0, "".to_string()), |(_, u)| (u.room_id, u.name.clone()));
 
-        // check existing games
-        if let Some((_, lookup_gid)) = DATABASE.user_to_game.remove(&client_name) {
-            if let Some((game_id, game)) = DATABASE.games.remove(&lookup_gid) {
-                room_id = game.room_id;
-                left_id = game_id;
+        // check games to see if we're the creator
+        // and remove if that's the case
+        if let Some((game_id, game)) = DATABASE
+            .games
+            .iter()
+            .find(|g| g.name == client_name)
+            .map(|g| g.id) // map to extract id without fucking up the iteration for dashmap
+            .and_then(|gid| DATABASE.games.remove(&gid))
+        {
+            room_id = game.room_id;
+            left_id = game_id;
 
-                debug!("Removing Game '{}'", game.name);
-                let leave_packet = WormsPacket::create(PacketCode::Leave)
-                    .with_value_2(left_id)
-                    .with_value_10(client_id)
-                    .build()?;
-                let close_packet = WormsPacket::create(PacketCode::Close)
-                    .with_value_10(left_id)
-                    .build()?;
+            debug!("Removing Game '{}'", game.name);
+            let leave_packet = WormsPacket::create(PacketCode::Leave)
+                .with_value_2(left_id)
+                .with_value_10(client_id)
+                .build()?;
+            let close_packet = WormsPacket::create(PacketCode::Close)
+                .with_value_10(left_id)
+                .build()?;
 
-                Server::broadcast_all(leave_packet).await?;
-                Server::broadcast_all(close_packet).await?;
-            }
+            Server::broadcast_all(leave_packet).await?;
+            Server::broadcast_all(close_packet).await?;
         }
 
         Server::leave_room(room_id, left_id)
