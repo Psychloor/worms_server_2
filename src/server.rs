@@ -63,6 +63,8 @@ impl Server {
         let framed = Framed::new(stream, WormCodec);
         let (mut sink, mut stream) = framed.split();
 
+        let mut packets_to_send = Vec::with_capacity(50);
+
         'client: loop {
             tokio::select! {
                 frame_result = time::timeout(timeout_duration, stream.next()) => match frame_result {
@@ -103,30 +105,18 @@ impl Server {
                         break 'client;
                     }
                 },
-                rx_result = rx.recv() => {
-                    if let Some(packet) = rx_result {
-                        let mut sent_packets = 1usize;
-                        if let Err(e) = sink.feed(packet).await{
-                            error!("Error feeding packet! {}", e);
-                            break 'client;
-                        }
-                        'packet_feed: while let Ok(packet) = rx.try_recv(){
-                            sent_packets += 1;
-                            if let Err(e) = sink.feed(packet).await{
-                                error!("Error feeding packet! {}", e);
-                                break 'client;
-                            }
-                            if sent_packets >= 20 {
-                                break 'packet_feed;
-                            }
-                        }
-                        if let Err(e) = sink.flush().await{
-                            error!("Error flushing sink! {}", e);
-                            break 'client;
-                        }
-                    } else {
-                        break 'client;
+                // Receive up to 50 packets to send at a time
+                packet_count = rx.recv_many(&mut packets_to_send, 50) => {
+                    if packet_count == 0 { continue; }
+
+                    // Drain and send each packet in the batch
+                    let packets = packets_to_send.drain(..packet_count);
+                    for packet in packets {
+                        sink.send(packet).await?;
                     }
+
+                    // Flush the sink once for the entire batch
+                    sink.flush().await?;
                 },
                 _ = cancellation_token.cancelled().fuse() => {
                     return Ok(());
