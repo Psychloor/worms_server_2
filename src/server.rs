@@ -110,13 +110,13 @@ impl Server {
                     if packet_count == 0 { continue; }
 
                     // Drain and send each packet in the batch
-                    let packets = packets_to_send.drain(..packet_count);
+                    // Sadly since some packets depends on order we can't parallelize this
+                    let packets = packets_to_send.drain(..packet_count)
                     for packet in packets {
                         sink.send(packet).await?;
                     }
 
-                    // Flush the sink once for the entire batch
-                    sink.flush().await?;
+                    // No need to flush since TCP_NODELAY is enabled
                 },
                 _ = cancellation_token.cancelled().fuse() => {
                     return Ok(());
