@@ -26,7 +26,7 @@ async fn main() -> eyre::Result<()> {
 }
 
 fn initialize_environment() -> eyre::Result<()> {
-    dotenv::dotenv()?;
+    dotenvy::dotenv()?;
     env_logger::init();
     color_eyre::install()?;
 
