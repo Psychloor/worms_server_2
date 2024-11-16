@@ -196,7 +196,8 @@ impl WormsPacket {
         }
 
         if let Some(session) = &self.session {
-            dst.put_u64_le(crate::net::worms_codec::CRC);
+            dst.put_u32(super::worms_codec::CRC_FIRST);
+            dst.put_u32_le(super::worms_codec::CRC_SECOND);
             dst.put_u8(session.nation.into());
             dst.put_u8(49);
 
@@ -207,7 +208,7 @@ impl WormsPacket {
             dst.put_u8(session.access.into());
             dst.put_u8(1);
             dst.put_u8(0);
-            dst.extend_from_slice(&crate::net::worms_codec::EMPTY_BUFFER);
+            dst.extend_from_slice(&super::worms_codec::EMPTY_BUFFER);
         }
 
         Ok(Arc::new(dst.freeze()))

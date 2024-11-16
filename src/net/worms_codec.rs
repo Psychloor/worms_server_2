@@ -11,10 +11,8 @@ pub struct WormCodec;
 
 pub const EMPTY_BUFFER: [u8; 35] = [0u8; 35];
 pub const CRC_FIRST: u32 = 0x17171717;
-pub const CRC_SECOND: u32 = 0x02010101;
+pub const CRC_SECOND: u32 = u32::from_be_bytes([0x02, 0x01, 0x01, 0x01]);
 
-// Combine both u32 CRC into one u64
-pub const CRC: u64 = ((CRC_SECOND as u64) << 32) | CRC_FIRST as u64;
 const MAX_DATA_LENGTH: usize = 0x200;
 const ZEROES_EXPECTED: usize = 35;
 
@@ -154,8 +152,13 @@ impl Decoder for WormCodec {
             }
             let mut session_info = SessionInfo::default();
 
-            if src.get_u64_le() != CRC {
-                bail!("Invalid Session CRC!");
+            // Endianess doesn't matter on first. same no matter which order
+            if src.get_u32() != CRC_FIRST {
+                bail!("Invalid first CRC");
+            }
+
+            if src.get_u32_le() != CRC_SECOND {
+                bail!("Invalid second CRC");
             }
 
             session_info.nation = src.get_u8().into();
