@@ -55,6 +55,7 @@ impl Database {
     }
 
     pub fn recycle_id(id: u32) {
+        // recycling because of canceling so ignore
         if SHUTDOWN_TOKEN.is_cancelled() {
             return;
         }
