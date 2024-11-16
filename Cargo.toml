@@ -52,6 +52,3 @@ debug = 1 # less precise locations
 [profile.dev.package."*"]
 debug = false # no debug symbols for deps
 opt-level = 2 # makes their code smaller too
-
-[target.x86_64-pc-windows-msvc]
-rustflags = ["-C", "link-arg=-fuse-ld=lld"]

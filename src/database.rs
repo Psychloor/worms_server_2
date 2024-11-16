@@ -42,7 +42,7 @@ impl Database {
                 BuildNoHashHasher::default(),
             ),
             next_id: AtomicU32::new(Database::ID_START),
-            reusable_ids: Mutex::new(Vec::new()),
+            reusable_ids: Mutex::default(),
         }
     }
 
