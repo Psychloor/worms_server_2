@@ -184,10 +184,13 @@ impl Decoder for WormCodec {
                 bail!("Invalid Data! Expected 0");
             }
 
-            let bytes = src.split_to(ZEROES_EXPECTED);
-            if bytes.iter().any(|&byte| byte != 0) {
-                bail!("Invalid Data Buffer! Non-zero byte found in expected zeroes");
+            if src.remaining() < ZEROES_EXPECTED
+                || src[..ZEROES_EXPECTED].iter().any(|&byte| byte != 0)
+            {
+                bail!("Invalid Data Buffer! Non-zero byte found or insufficient data");
             }
+
+            src.advance(ZEROES_EXPECTED);
 
             packet.session = Some(Arc::new(session_info));
         }
