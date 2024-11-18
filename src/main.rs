@@ -1,3 +1,7 @@
+#![warn(clippy::pedantic)]
+#![warn(clippy::perf)]
+#![warn(clippy::style)]
+
 use crate::args::Args;
 use crate::database::SHUTDOWN_TOKEN;
 use clap::Parser;

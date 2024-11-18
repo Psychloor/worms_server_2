@@ -10,7 +10,7 @@ use tokio_util::codec::{Decoder, Encoder};
 pub struct WormCodec;
 
 pub const EMPTY_BUFFER: [u8; 35] = [0u8; 35];
-pub const CRC_FIRST: u32 = 0x17171717;
+pub const CRC_FIRST: u32 = 0x1717_1717;
 pub const CRC_SECOND: u32 = u32::from_be_bytes([0x02, 0x01, 0x01, 0x01]);
 
 const MAX_DATA_LENGTH: usize = 0x200;

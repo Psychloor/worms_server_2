@@ -46,7 +46,7 @@ impl Database {
         }
     }
 
-    pub async fn get_next_id() -> u32 {
+    pub fn get_next_id() -> u32 {
         if let Some(id) = DATABASE.reusable_ids.lock().pop() {
             return id;
         }

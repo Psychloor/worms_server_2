@@ -19,6 +19,7 @@ use tokio_util::bytes::Bytes;
 use tokio_util::codec::Framed;
 
 pub(crate) struct Server;
+
 impl Server {
     const AUTHORIZED_TTL: Duration = Duration::from_secs(10 * 60);
     const UNAUTHORIZED_TTL: Duration = Duration::from_secs(3);
@@ -31,9 +32,8 @@ impl Server {
             .local_addr()
             .map_err(|e| eyre!("Unable to get local address: {}", e))?;
 
-        println!("Server listening at {}", local_addr);
+        println!("Server listening at {local_addr}");
         println!("Press Ctrl + C to shutdown!");
-
         'server: loop {
             tokio::select! {
                 listen_result = listener.accept() => {
@@ -43,7 +43,7 @@ impl Server {
                         tokio::spawn(Server::handle_connection(stream));
                     }
                 },
-                _ = cancellation_token.cancelled().fuse() => {
+                    () = cancellation_token.cancelled().fuse() => {
                     break 'server;
                 }
             }
@@ -128,7 +128,7 @@ impl Server {
                         break 'client;
                     }
                 },
-                _ = cancellation_token.cancelled().fuse() => {
+                () = cancellation_token.cancelled().fuse() => {
                     return Ok(());
                 }
             }
@@ -153,30 +153,30 @@ impl Server {
                 .build()?;
             tx.send(packet).await?;
             bail!("Failed to login: Name already exists")
-        } else {
-            let new_id = Database::get_next_id().await;
-            let new_user = User::new(tx.clone().downgrade(), new_id, name, session_nation);
-
-            info!("User '{}' {} joined!", name, new_id);
-
-            let packet = WormsPacket::create(PacketCode::Login)
-                .with_value_1(new_id)
-                .with_value_4(0)
-                .with_name(name)
-                .with_session(&new_user.session)
-                .build()?;
-
-            DATABASE.users.insert(new_id, new_user);
-            Server::broadcast_all(packet).await?;
-
-            let packet = WormsPacket::create(PacketCode::LoginReply)
-                .with_value_1(new_id)
-                .with_error_code(0)
-                .build()?;
-            tx.send(packet).await?;
-
-            Ok(new_id)
         }
+
+        let new_id = Database::get_next_id();
+        let new_user = User::new(tx.clone().downgrade(), new_id, name, session_nation);
+
+        info!("User '{}' {} joined!", name, new_id);
+
+        let packet = WormsPacket::create(PacketCode::Login)
+            .with_value_1(new_id)
+            .with_value_4(0)
+            .with_name(name)
+            .with_session(&new_user.session)
+            .build()?;
+
+        DATABASE.users.insert(new_id, new_user);
+        Server::broadcast_all(packet).await?;
+
+        let packet = WormsPacket::create(PacketCode::LoginReply)
+            .with_value_1(new_id)
+            .with_error_code(0)
+            .build()?;
+        tx.send(packet).await?;
+
+        Ok(new_id)
     }
 
     async fn broadcast_all_with_filter<F>(packet: Arc<Bytes>, filter: F) -> Result<(), eyre::Error>
@@ -228,7 +228,7 @@ impl Server {
         let old_user = DATABASE.users.remove(&client_id);
 
         let (mut room_id, client_name) =
-            old_user.map_or((0, "".to_string()), |(_, u)| (u.room_id, u.name.clone()));
+            old_user.map_or((0, String::new()), |(_, u)| (u.room_id, u.name.clone()));
 
         // Find the game ID first without holding any locks
         let game_id_to_remove = DATABASE
@@ -258,7 +258,7 @@ impl Server {
 
         Server::leave_room(room_id, left_id)
             .await
-            .wrap_err_with(|| format!("Failed to leave room {}", room_id))?;
+            .wrap_err_with(|| format!("Failed to leave room {room_id}"))?;
 
         let packet = WormsPacket::create(PacketCode::DisconnectUser)
             .with_value_10(client_id)

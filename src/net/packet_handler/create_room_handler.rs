@@ -44,7 +44,7 @@ impl PacketHandler for CreateRoomHandler {
                 .build()?;
             tx.send(packet).await?;
         } else {
-            let new_id = Database::get_next_id().await;
+            let new_id = Database::get_next_id();
             let new_room = Room::new(new_id, room_name, packet.session.as_ref().unwrap().nation);
 
             // Notify all users of this newly made room, made early since the room will be consumed

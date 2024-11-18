@@ -45,6 +45,9 @@ codegen-units = 1
 panic = "abort"
 strip = true
 
+[profile.release.package."*"]
+opt-level = 3
+
 # Make all the packages way smaller
 [profile.dev]
 debug = 1 # less precise locations
