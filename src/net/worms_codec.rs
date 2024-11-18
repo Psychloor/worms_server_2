@@ -152,7 +152,7 @@ impl Decoder for WormCodec {
             }
             let mut session_info = SessionInfo::default();
 
-            // Endianess doesn't matter on first. same no matter which order
+            // endianness doesn't matter on first. same no matter which order
             if src.get_u32() != CRC_FIRST {
                 bail!("Invalid first CRC");
             }
