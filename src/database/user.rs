@@ -27,7 +27,7 @@ impl User {
 
     pub async fn send_packet(&self, packet: Arc<Bytes>) -> eyre::Result<()> {
         if let Some(sender) = self.sender.upgrade() {
-            sender.send(packet).await?
+            sender.send(packet).await?;
         }
 
         // if it failed, the user connection doesn't exist anymore

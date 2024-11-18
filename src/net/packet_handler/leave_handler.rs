@@ -28,7 +28,7 @@ impl PacketHandler for LeaveHandler {
             let leave_result = Server::leave_room(client_room_id, client_id).await;
             {
                 if leave_result.is_err() {
-                    error!("Error leaving room: {:?}", leave_result.err().unwrap())
+                    error!("Error leaving room: {:?}", leave_result.err().unwrap());
                 }
                 if let Some(mut user) = DATABASE.users.get_mut(&client_id) {
                     user.room_id = 0;

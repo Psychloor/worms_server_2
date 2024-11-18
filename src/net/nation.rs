@@ -174,7 +174,6 @@ impl From<Nation> for u8 {
 impl From<u8> for Nation {
     fn from(value: u8) -> Self {
         match value {
-            0 => Nation::None,
             1 => Nation::UK,
             2 => Nation::AR,
             3 => Nation::AU,

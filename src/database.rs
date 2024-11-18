@@ -64,7 +64,7 @@ impl Database {
         }
     }
 
-    pub async fn check_user_exists(name: &str) -> bool {
+    pub fn check_user_exists(name: &str) -> bool {
         DATABASE
             .users
             .iter()

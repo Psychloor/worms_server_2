@@ -21,7 +21,7 @@ impl PacketHandler for ListRoomsHandler {
             bail!("Invalid Data!");
         }
 
-        for room in DATABASE.rooms.iter() {
+        for room in &DATABASE.rooms {
             let packet = WormsPacket::create(PacketCode::ListItem)
                 .with_value_1(*room.key())
                 .with_data("")

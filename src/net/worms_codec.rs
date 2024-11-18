@@ -1,11 +1,13 @@
 use crate::net::session_info::SessionInfo;
 use crate::net::worms_packet::{PacketFlags, WormsPacket};
 use encoding_rs::WINDOWS_1252;
-use eyre::{bail, eyre, Result};
+use eyre::{bail, eyre, Error, Result};
 use log::error;
 use std::sync::Arc;
 use tokio_util::bytes::{Buf, Bytes, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
+
+use super::packet_code::PacketCode;
 
 pub struct WormCodec;
 
@@ -29,6 +31,8 @@ impl Decoder for WormCodec {
     type Error = eyre::Error;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        use std::result::Result::Ok;
+
         if src.len() < 8 {
             // tell the frame we need more
             return Ok(None);
@@ -36,7 +40,7 @@ impl Decoder for WormCodec {
 
         let mut packet = WormsPacket::default();
 
-        match src.get_u32_le().try_into() {
+        match PacketCode::try_from(src.get_u32_le()) {
             Ok(code) => {
                 packet.header_code = code;
             }
@@ -105,7 +109,7 @@ impl Decoder for WormCodec {
                 let data_bytes = src.split_to(length);
                 let filtered_bytes: Vec<u8> = data_bytes
                     .iter()
-                    .cloned()
+                    .copied()
                     .filter(|&byte| byte != b'\0')
                     .collect();
                 let (decoded, _, had_error) = WINDOWS_1252.decode(&filtered_bytes);
@@ -130,71 +134,80 @@ impl Decoder for WormCodec {
                 return Ok(None);
             }
 
-            let data_bytes = src.split_to(super::worms_packet::MAX_NAME_LENGTH);
-            let filtered_bytes: Vec<u8> = data_bytes
-                .iter()
-                .cloned()
-                .filter(|&byte| byte != b'\0')
-                .collect();
-
-            let (decoded, _, had_error) = WINDOWS_1252.decode(&filtered_bytes);
-            if had_error {
-                error!("Packet Name: Windows-1252 decode error");
-                bail!("Windows-1252 decode error");
-            }
-
-            packet.name = Some(decoded.to_string());
+            decode_name(src, &mut packet)?;
         }
 
         if packet.flags.contains(PacketFlags::SESSION) {
-            if src.remaining() < 50 {
-                return Ok(None);
-            }
-            let mut session_info = SessionInfo::default();
-
-            // endianness doesn't matter on first. same no matter which order
-            if src.get_u32() != CRC_FIRST {
-                bail!("Invalid first CRC");
-            }
-
-            if src.get_u32_le() != CRC_SECOND {
-                bail!("Invalid second CRC");
-            }
-
-            session_info.nation = src.get_u8().into();
-
-            // should be 49
-            let _game_version = src.get_u8();
-
-            session_info.game_release = src.get_u8();
-
-            session_info.session_type = src
-                .get_u8()
-                .try_into()
-                .map_err(|e| eyre!("Session type invalid! {:?}", e))?;
-            session_info.access = src
-                .get_u8()
-                .try_into()
-                .map_err(|e| eyre!("Session access invalid! {:?}", e))?;
-
-            if src.get_u8() != 1 {
-                bail!("Invalid Data! Expected 1");
-            }
-            if src.get_u8() != 0 {
-                bail!("Invalid Data! Expected 0");
-            }
-
-            if src.remaining() < ZEROES_EXPECTED
-                || src[..ZEROES_EXPECTED].iter().any(|&byte| byte != 0)
-            {
-                bail!("Invalid Data Buffer! Non-zero byte found or insufficient data");
-            }
-
-            src.advance(ZEROES_EXPECTED);
-
-            packet.session = Some(Arc::new(session_info));
+            packet.session = SessionInfo::decode_session(src)?;
         }
 
         Ok(Some(Arc::new(packet)))
+    }
+}
+
+fn decode_name(src: &mut BytesMut, packet: &mut WormsPacket) -> Result<(), Error> {
+    let data_bytes = src.split_to(super::worms_packet::MAX_NAME_LENGTH);
+    let filtered_bytes: Vec<u8> = data_bytes
+        .iter()
+        .copied()
+        .filter(|&byte| byte != b'\0')
+        .collect();
+    let (decoded, _, had_error) = WINDOWS_1252.decode(&filtered_bytes);
+    if had_error {
+        log::error!("Packet Name: Windows-1252 decode error");
+        bail!("Windows-1252 decode error");
+    }
+    packet.name = Some(decoded.to_string());
+
+    Ok(())
+}
+
+impl SessionInfo {
+    pub fn decode_session(src: &mut BytesMut) -> Result<Option<Arc<Self>>, Error> {
+        if src.remaining() < 50 {
+            return Ok(None);
+        }
+        let mut session_info = SessionInfo::default();
+
+        // endianness doesn't matter on first. same no matter which order
+        if src.get_u32() != CRC_FIRST {
+            bail!("Invalid first CRC");
+        }
+
+        if src.get_u32_le() != CRC_SECOND {
+            bail!("Invalid second CRC");
+        }
+
+        session_info.nation = src.get_u8().into();
+
+        // should be 49
+        let _game_version = src.get_u8();
+
+        session_info.game_release = src.get_u8();
+
+        session_info.session_type = src
+            .get_u8()
+            .try_into()
+            .map_err(|e| eyre!("Session type invalid! {:?}", e))?;
+        session_info.access = src
+            .get_u8()
+            .try_into()
+            .map_err(|e| eyre!("Session access invalid! {:?}", e))?;
+
+        if src.get_u8() != 1 {
+            bail!("Invalid Data! Expected 1");
+        }
+        if src.get_u8() != 0 {
+            bail!("Invalid Data! Expected 0");
+        }
+
+        if src.remaining() < ZEROES_EXPECTED || src[..ZEROES_EXPECTED].iter().any(|&byte| byte != 0)
+        {
+            bail!("Invalid Data Buffer! Non-zero byte found or insufficient data");
+        }
+
+        src.advance(ZEROES_EXPECTED);
+
+        Ok(Some(Arc::new(session_info)))
     }
 }

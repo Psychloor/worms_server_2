@@ -220,34 +220,34 @@ impl Debug for WormsPacket {
         write!(f, "Header: {:?} ", self.header_code)?;
 
         if let Some(value) = self.value_0 {
-            write!(f, "Value 0: {} ", value)?;
+            write!(f, "Value 0: {value} ")?;
         }
         if let Some(value) = self.value_1 {
-            write!(f, "Value 1: {} ", value)?;
+            write!(f, "Value 1: {value} ")?;
         }
         if let Some(value) = self.value_2 {
-            write!(f, "Value 2: {} ", value)?;
+            write!(f, "Value 2: {value} ")?;
         }
         if let Some(value) = self.value_3 {
-            write!(f, "Value 3: {} ", value)?;
+            write!(f, "Value 3: {value} ")?;
         }
         if let Some(value) = self.value_4 {
-            write!(f, "Value 4: {} ", value)?;
+            write!(f, "Value 4: {value} ")?;
         }
         if let Some(value) = self.value_10 {
-            write!(f, "Value 10: {} ", value)?;
+            write!(f, "Value 10: {value} ")?;
         }
         if let Some(value) = &self.data {
-            write!(f, "Data: {} ", value)?;
+            write!(f, "Data: {value} ")?;
         }
         if let Some(value) = self.error_code {
-            write!(f, "Error Code: {} ", value)?;
+            write!(f, "Error Code: {value} ")?;
         }
         if let Some(value) = &self.name {
-            write!(f, "Name: {} ", value)?;
+            write!(f, "Name: {value} ")?;
         }
         if let Some(value) = &self.session {
-            write!(f, "Session: {:?} ", value)?;
+            write!(f, "Session: {value:?} ")?;
         }
 
         Ok(())

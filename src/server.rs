@@ -146,7 +146,7 @@ impl Server {
             .map(|s| s.nation)
             .ok_or(eyre!("No nation specified!"))?;
 
-        if Database::check_user_exists(name).await {
+        if Database::check_user_exists(name) {
             let packet = WormsPacket::create(PacketCode::LoginReply)
                 .with_value_1(0)
                 .with_error_code(1)

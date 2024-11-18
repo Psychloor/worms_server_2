@@ -37,10 +37,10 @@ impl SessionInfo {
 impl Default for SessionInfo {
     fn default() -> Self {
         Self {
-            nation: Default::default(),
+            nation: Nation::default(),
             game_release: 49,
-            session_type: Default::default(),
-            access: Default::default(),
+            session_type: SessionType::default(),
+            access: SessionAccess::default(),
         }
     }
 }

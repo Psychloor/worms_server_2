@@ -32,7 +32,7 @@ impl PacketHandler for ChatRoomHandler {
         let client_user = DATABASE
             .users
             .get(&client_id)
-            .ok_or_eyre(format!("User '{}' not found!", client_id))?;
+            .ok_or_eyre(format!("User '{client_id}' not found!"))?;
 
         // Regular chat
         let prefix = format!("GRP:[ {} ]  ", &client_user.name);
