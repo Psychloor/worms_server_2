@@ -53,7 +53,7 @@ impl Server {
     }
 
     async fn handle_connection(stream: TcpStream) -> Result<()> {
-        let mut user_id: u32 = 0;
+        let user_id;
         let mut timeout_duration = Server::UNAUTHORIZED_TTL;
         let cancellation_token = SHUTDOWN_TOKEN.clone();
 
@@ -65,25 +65,35 @@ impl Server {
 
         let mut packets_to_send = Vec::with_capacity(50);
 
+        // authorize the client
+        let packet = time::timeout(timeout_duration, stream.next()).await?;
+        if let Some(Ok(ref packet)) = packet {
+            if packet.header_code != PacketCode::Login {
+                bail!("First packet must be a login packet");
+            }
+
+            let login_result = Server::login_client(packet, &tx).await;
+            match login_result {
+                Ok(id) => {
+                    user_id = id;
+                    timeout_duration = Server::AUTHORIZED_TTL;
+                }
+                Err(e) => {
+                    error!("Error logging in: {}", e);
+                    return Ok(());
+                }
+            }
+        } else {
+            bail!("First packet must be a login packet");
+        }
+
+        // main loop for the client connection handling packets and sending them out
         'client: loop {
             tokio::select! {
                 frame_result = time::timeout(timeout_duration, stream.next()) => match frame_result {
                     Ok(Some(Ok(ref packet))) => {
                         debug!("Received Packet: {:?}", packet);
                         match packet.header_code {
-                            PacketCode::Login if user_id == 0 => {
-                                let login_result = Server::login_client(packet, &tx).await;
-                                match login_result {
-                                    Ok(id) => {
-                                        user_id = id;
-                                        timeout_duration = Server::AUTHORIZED_TTL;
-                                    },
-                                    Err(e) => {
-                                        error!("Error logging in: {}", e);
-                                        break 'client;
-                                    }
-                                }
-                            },
                             _ if user_id == 0 => { continue; },
                             packet_code => {
                                 if let Err(e) = packet_handler::dispatch(packet_code, tx.clone(), packet.clone(), user_id, sender_addr).await {
@@ -230,31 +240,32 @@ impl Server {
         let (mut room_id, client_name) =
             old_user.map_or((0, String::new()), |(_, u)| (u.room_id, u.name.clone()));
 
-        // Find the game ID first without holding any locks
-        let game_id_to_remove = DATABASE
-            .games
-            .iter()
-            .find(|g| g.name == client_name)
-            .map(|g| g.id);
+        DATABASE.games.retain(|cur_id, cur_game| {
+            if cur_game.name == client_name {
+                room_id = cur_game.room_id;
+                left_id = *cur_id;
 
-        if let Some(game_id) = game_id_to_remove {
-            if let Some((game_id, game)) = DATABASE.games.remove(&game_id) {
-                room_id = game.room_id;
-                left_id = game_id;
-
-                debug!("Removing Game '{}'", game.name);
+                debug!("Removing Game '{}'", cur_game.name);
                 let leave_packet = WormsPacket::create(PacketCode::Leave)
                     .with_value_2(left_id)
                     .with_value_10(client_id)
-                    .build()?;
+                    .build()
+                    .expect("Packet should build without a worry");
                 let close_packet = WormsPacket::create(PacketCode::Close)
                     .with_value_10(left_id)
-                    .build()?;
+                    .build()
+                    .expect("Packet should build without a worry");
 
-                Server::broadcast_all(leave_packet).await?;
-                Server::broadcast_all(close_packet).await?;
+                tokio::spawn(async move {
+                    Server::broadcast_all(leave_packet).await.unwrap();
+                    Server::broadcast_all(close_packet).await.unwrap();
+                });
+
+                false // remove this entry
+            } else {
+                true // keep this entry
             }
-        }
+        });
 
         Server::leave_room(room_id, left_id)
             .await
@@ -278,6 +289,7 @@ impl Server {
                     .users
                     .iter()
                     .any(|u| u.id != left_id && u.room_id == room_id);
+
                 let any_games_connected = DATABASE
                     .games
                     .iter()

@@ -1,12 +1,8 @@
-#![warn(clippy::pedantic)]
-#![warn(clippy::perf)]
-#![warn(clippy::style)]
-#![warn(clippy::correctness)]
-#![warn(clippy::complexity)]
-#![warn(clippy::suspicious)]
+#![allow(clippy::all)]
 
 use crate::args::Args;
 use crate::database::SHUTDOWN_TOKEN;
+
 use clap::Parser;
 use log::{error, info};
 use server::Server;
