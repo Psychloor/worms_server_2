@@ -107,7 +107,7 @@ impl Server {
                 frame_result = time::timeout(Server::AUTHORIZED_TTL, stream.next()) => {
                     // Limit packets to 5 per second
                     if rate_limiter.check().is_err() {
-                            limited_count += 1;
+                        limited_count += 1;
 
                         // If the user sends too many packets, disconnect them
                         if limited_count > MAX_LIMITED_COUNT {
