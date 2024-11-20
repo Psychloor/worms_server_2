@@ -1,5 +1,5 @@
 use crate::database::user::User;
-use crate::database::{Database, DATABASE, SHUTDOWN_TOKEN};
+use crate::database::{self, Database, DATABASE, SHUTDOWN_TOKEN};
 use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler;
 use crate::net::worms_codec::WormCodec;
@@ -54,7 +54,7 @@ impl Server {
 
     async fn handle_connection(stream: TcpStream) -> Result<()> {
         let user_id;
-        let mut timeout_duration = Server::UNAUTHORIZED_TTL;
+
         let cancellation_token = SHUTDOWN_TOKEN.clone();
 
         let sender_addr = stream.peer_addr()?;
@@ -66,7 +66,7 @@ impl Server {
         let mut packets_to_send = Vec::with_capacity(50);
 
         // authorize the client
-        let packet = time::timeout(timeout_duration, stream.next()).await?;
+        let packet = time::timeout(Server::UNAUTHORIZED_TTL, stream.next()).await?;
         if let Some(Ok(ref packet)) = packet {
             if packet.header_code != PacketCode::Login {
                 bail!("First packet must be a login packet");
@@ -76,7 +76,6 @@ impl Server {
             match login_result {
                 Ok(id) => {
                     user_id = id;
-                    timeout_duration = Server::AUTHORIZED_TTL;
                 }
                 Err(e) => {
                     error!("Error logging in: {}", e);
@@ -90,11 +89,12 @@ impl Server {
         // main loop for the client connection handling packets and sending them out
         'client: loop {
             tokio::select! {
-                frame_result = time::timeout(timeout_duration, stream.next()) => match frame_result {
+                frame_result = time::timeout(Server::AUTHORIZED_TTL, stream.next()) => match frame_result {
                     Ok(Some(Ok(ref packet))) => {
                         debug!("Received Packet: {:?}", packet);
                         match packet.header_code {
-                            _ if user_id == 0 => { continue; },
+                            // shouldn't happen, but just in case
+                            _ if user_id < Database::ID_START => { break 'client; },
                             packet_code => {
                                 if let Err(e) = packet_handler::dispatch(packet_code, tx.clone(), packet.clone(), user_id, sender_addr).await {
                                     error!("Error Handling Packet: {}", e);
