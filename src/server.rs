@@ -70,7 +70,7 @@ impl Server {
         let cancellation_token = SHUTDOWN_TOKEN.clone();
         let rate_limiter = RateLimiter::direct(Quota::per_second(NonZeroU32::new(5).unwrap()));
         let mut limited_count = 0;
-        const MAX_LIMITED_COUNT: u32 = 20;
+        const MAX_LIMITED_COUNT: u32 = 10;
 
         let sender_addr = stream.peer_addr()?;
 
