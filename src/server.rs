@@ -104,46 +104,51 @@ impl Server {
         // main loop for the client connection handling packets and sending them out
         'client: loop {
             tokio::select! {
-                frame_result = time::timeout(Server::AUTHORIZED_TTL, stream.next()) => match frame_result {
-                    Ok(Some(Ok(ref packet))) => {
-                        debug!("Received Packet: {:?}", packet);
-
-                        // Limit packets to 5 per second
-                        if rate_limiter.check().is_err() {
+                frame_result = time::timeout(Server::AUTHORIZED_TTL, stream.next()) => {
+                    // Limit packets to 5 per second
+                    if rate_limiter.check().is_err() {
                             limited_count += 1;
 
-                            // If the user sends too many packets, disconnect them
-                            if limited_count > MAX_LIMITED_COUNT {
-                                error!("Rate limit exceeded for {}", sender_addr);
-                                break 'client;
+                        // If the user sends too many packets, disconnect them
+                        if limited_count > MAX_LIMITED_COUNT {
+                            error!("Rate limit exceeded for {}", sender_addr);
+                            break 'client;
+                        }
+
+                        continue;
+                    } else {
+                        limited_count = 0;
+                    }
+
+                    match frame_result {
+                        Ok(Some(Ok(packet))) => {
+                            debug!("Received Packet: {:?}", packet);
+
+                            if user_id < Database::ID_START {
+                                break 'client; // Disconnect invalid users
                             }
 
-                            continue;
-                        } else {
-                            limited_count = 0;
+                            if let Err(e) = packet_handler::dispatch(
+                                packet.header_code,
+                                tx.clone(),
+                                packet.clone(),
+                                user_id,
+                                sender_addr,
+                            ).await
+                            {
+                                error!("Error Handling Packet: {}", e);
+                                break 'client;
+                            }
                         }
-
-                        match packet.header_code {
-                            // shouldn't happen, but just in case
-                            _ if user_id < Database::ID_START => { break 'client; },
-                            packet_code => {
-                                if let Err(e) = packet_handler::dispatch(packet_code, tx.clone(), packet.clone(), user_id, sender_addr).await {
-                                    error!("Error Handling Packet: {}", e);
-                                    break 'client;
-                                }
-                            },
+                        Ok(Some(Err(e))) => {
+                            error!("Error receiving packet: {}", e);
+                            break 'client;
                         }
-                    },
-                    Ok(Some(Err(e))) => {
-                        error!("Error receiving packet: {}", e);
-                        break 'client;
-                    },
-                    Ok(None) => {
-                        break 'client;
-                    },
-                    Err(e) => {
-                        info!("Timeout {}: {}", user_id, e);
-                        break 'client;
+                        Ok(None) => break 'client, // Stream ended
+                        Err(e) => {
+                            info!("Timeout {}: {}", user_id, e);
+                            break 'client;
+                        }
                     }
                 },
                 // Receive up to 50 packets to send at a time
