@@ -1,5 +1,5 @@
 use crate::database::user::User;
-use crate::database::{self, Database, DATABASE, SHUTDOWN_TOKEN};
+use crate::database::{Database, DATABASE, SHUTDOWN_TOKEN};
 use crate::net::packet_code::PacketCode;
 use crate::net::packet_handler;
 use crate::net::worms_codec::WormCodec;
@@ -7,9 +7,11 @@ use crate::net::worms_packet::WormsPacket;
 use eyre::{bail, eyre, Result, WrapErr};
 use futures_util::StreamExt;
 use futures_util::{FutureExt, SinkExt};
+use governor::{Quota, RateLimiter};
 use log::{debug, error, info};
 
 use futures_util::future::join_all;
+use std::num::NonZeroU32;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
@@ -26,6 +28,7 @@ impl Server {
 
     pub async fn start_server(address: impl ToSocketAddrs) -> Result<()> {
         let cancellation_token = SHUTDOWN_TOKEN.clone();
+        let rate_limiter = RateLimiter::dashmap(Quota::per_second(NonZeroU32::new(1).unwrap()));
 
         let listener = TcpListener::bind(address).await?;
         let local_addr = listener
@@ -38,8 +41,17 @@ impl Server {
             tokio::select! {
                 listen_result = listener.accept() => {
                     if let Ok((stream, _)) = listen_result {
+                        // Limit login attempts to 1 per second
+                        let addr = stream.peer_addr()?;
+                        if let Err(_) = rate_limiter.check_key(&addr) {
+                            error!("Rate limit exceeded for {}", addr);
+                            continue;
+                        }
+
+                        // Set TCP_NODELAY to true
                         stream.set_nodelay(true)?;
 
+                        // Handle the connection in a separate task
                         tokio::spawn(Server::handle_connection(stream));
                     }
                 },
@@ -56,6 +68,9 @@ impl Server {
         let user_id;
 
         let cancellation_token = SHUTDOWN_TOKEN.clone();
+        let rate_limiter = RateLimiter::direct(Quota::per_second(NonZeroU32::new(5).unwrap()));
+        let mut limited_count = 0;
+        const MAX_LIMITED_COUNT: u32 = 20;
 
         let sender_addr = stream.peer_addr()?;
 
@@ -92,6 +107,22 @@ impl Server {
                 frame_result = time::timeout(Server::AUTHORIZED_TTL, stream.next()) => match frame_result {
                     Ok(Some(Ok(ref packet))) => {
                         debug!("Received Packet: {:?}", packet);
+
+                        // Limit packets to 5 per second
+                        if rate_limiter.check().is_err() {
+                            limited_count += 1;
+
+                            // If the user sends too many packets, disconnect them
+                            if limited_count > MAX_LIMITED_COUNT {
+                                error!("Rate limit exceeded for {}", sender_addr);
+                                break 'client;
+                            }
+
+                            continue;
+                        } else {
+                            limited_count = 0;
+                        }
+
                         match packet.header_code {
                             // shouldn't happen, but just in case
                             _ if user_id < Database::ID_START => { break 'client; },
