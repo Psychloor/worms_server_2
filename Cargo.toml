@@ -11,7 +11,7 @@ license = "MIT"
 eyre = "0.6.12"
 
 # Async support and utilities
-tokio = { version = "1.41.1", features = ["full"] }
+tokio = { version = "1.43.1", features = ["full"] }
 tokio-util = { version = "0.7.12", features = ["full"] }
 futures = "0.3.31"
 futures-util = { version = "0.3.31", features = ["tokio-io", "async-await", "sink", "default"] }
